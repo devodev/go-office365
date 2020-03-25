@@ -10,12 +10,18 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	pubIdentifier string
-	startTime     string
-	endTime       string
+func init() {
+	rootCmd.AddCommand(newCommandContent())
+}
 
-	contentCmd = &cobra.Command{
+func newCommandContent() *cobra.Command {
+	var (
+		pubIdentifier string
+		startTime     string
+		endTime       string
+	)
+
+	cmd := &cobra.Command{
 		Use:   "content [content-type]",
 		Short: "List content that is available to be fetched for the provided content-type.",
 		Args:  cobra.ExactArgs(1),
@@ -57,17 +63,13 @@ var (
 			}
 		},
 	}
-)
+	cmd.Flags().StringVar(&pubIdentifier, "identifier", "", "Publisher Identifier")
+	cmd.Flags().StringVar(&startTime, "start", "", "Start time")
+	cmd.Flags().StringVar(&endTime, "end", "", "End time")
 
-func init() {
-	contentCmd.Flags().StringVar(&pubIdentifier, "identifier", "", "Publisher Identifier")
-	contentCmd.Flags().StringVar(&startTime, "start", "", "Start time")
-	contentCmd.Flags().StringVar(&endTime, "end", "", "End time")
-
-	rootCmd.AddCommand(contentCmd)
+	return cmd
 }
 
-// TODO: move validation into client.Subscriptions.Content
 func parseDate(param string) time.Time {
 	formats := []string{
 		office365.RequestDateFormat,

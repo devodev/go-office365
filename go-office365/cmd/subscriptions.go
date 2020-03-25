@@ -9,18 +9,25 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	subscriptionsCmd = &cobra.Command{
+func init() {
+	rootCmd.AddCommand(newCommandSubscriptions())
+}
+
+func newCommandSubscriptions() *cobra.Command {
+	var pubIdentifier string
+
+	cmd := &cobra.Command{
 		Use:   "subscriptions",
 		Short: "List current subscriptions.",
 		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
 
-			// Micorosoft Office365 Management Activity Api Client
+			// parse optional args
+			if pubIdentifier == "" {
+				pubIdentifier = config.Credentials.ClientID
+			}
+
 			client := office365.NewClientAuthenticated(&config.Credentials)
-
-			pubIdentifier := ""
-
 			subscriptions, err := client.Subscriptions.List(context.Background(), pubIdentifier)
 			if err != nil {
 				fmt.Printf("error getting subscriptions: %s\n", err)
@@ -36,8 +43,7 @@ var (
 			}
 		},
 	}
-)
+	cmd.Flags().StringVar(&pubIdentifier, "identifier", "", "Publisher Identifier")
 
-func init() {
-	rootCmd.AddCommand(subscriptionsCmd)
+	return cmd
 }
