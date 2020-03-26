@@ -54,69 +54,14 @@ func newCommandWatch() *cobra.Command {
 			client := office365.NewClientAuthenticated(&config.Credentials)
 
 			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
 
 			doneChan := make(chan bool)
 
 			// main loop
-			go func(o365Client *office365.Client, tc *time.Ticker, tDur time.Duration, done chan bool, exit <-chan os.Signal) {
-				for {
-					select {
-					case <-exit:
-						done <- true
-						break
-					case t := <-tc.C:
-
-						startTime := t.Add(-(tDur + time.Minute))
-						endTime := t
-
-						subscriptions, err := o365Client.Subscriptions.List(ctx, pubIdentifier)
-						if err != nil {
-							fmt.Printf("error getting subscriptions: %s\n", err)
-							break
-						}
-
-						for _, s := range subscriptions {
-
-							ct, err := office365.GetContentType(s.ContentType)
-							if err != nil {
-								fmt.Println(err)
-								continue
-							}
-
-							// retrieve content
-							content, err := o365Client.Subscriptions.Content(ctx, pubIdentifier, ct, startTime, endTime)
-							if err != nil {
-								fmt.Printf("error getting content: %s\n", err)
-								continue
-							}
-
-							// retrieve audits
-							var auditList []office365.AuditRecord
-							for _, c := range content {
-								audits, err := o365Client.Subscriptions.Audit(ctx, c.ContentID)
-								if err != nil {
-									fmt.Printf("error getting audits: %s\n", err)
-									continue
-								}
-								auditList = append(auditList, audits...)
-							}
-
-							// output
-							for _, a := range auditList {
-								auditStr, err := json.Marshal(a)
-								if err != nil {
-									fmt.Printf("error marshalling audit: %s\n", err)
-									continue
-								}
-								fmt.Println(string(auditStr))
-							}
-						}
-					}
-				}
-			}(client, ticker, tickerDur, doneChan, sigChan)
+			go main(ctx, client, pubIdentifier, ticker, tickerDur, doneChan, sigChan)
 
 			<-doneChan
-			cancel()
 		},
 	}
 	cmd.Flags().StringVar(&pubIdentifier, "identifier", "", "Publisher Identifier")
@@ -155,4 +100,61 @@ func getSigChan() chan os.Signal {
 		syscall.SIGTERM,
 		syscall.SIGQUIT)
 	return sigChan
+}
+
+func main(ctx context.Context, o365Client *office365.Client, pubIdentifier string, tc *time.Ticker, tDur time.Duration, done chan bool, exit <-chan os.Signal) {
+	for {
+		select {
+		case <-exit:
+			done <- true
+			break
+		case t := <-tc.C:
+
+			startTime := t.Add(-(tDur + time.Minute))
+			endTime := t
+
+			subscriptions, err := o365Client.Subscriptions.List(ctx, pubIdentifier)
+			if err != nil {
+				fmt.Printf("error getting subscriptions: %s\n", err)
+				break
+			}
+
+			for _, s := range subscriptions {
+
+				ct, err := office365.GetContentType(s.ContentType)
+				if err != nil {
+					fmt.Println(err)
+					continue
+				}
+
+				// retrieve content
+				content, err := o365Client.Subscriptions.Content(ctx, pubIdentifier, ct, startTime, endTime)
+				if err != nil {
+					fmt.Printf("error getting content: %s\n", err)
+					continue
+				}
+
+				// retrieve audits
+				var auditList []office365.AuditRecord
+				for _, c := range content {
+					audits, err := o365Client.Subscriptions.Audit(ctx, c.ContentID)
+					if err != nil {
+						fmt.Printf("error getting audits: %s\n", err)
+						continue
+					}
+					auditList = append(auditList, audits...)
+				}
+
+				// output
+				for _, a := range auditList {
+					auditStr, err := json.Marshal(a)
+					if err != nil {
+						fmt.Printf("error marshalling audit: %s\n", err)
+						continue
+					}
+					fmt.Println(string(auditStr))
+				}
+			}
+		}
+	}
 }
