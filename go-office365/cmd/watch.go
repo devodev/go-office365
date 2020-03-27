@@ -43,8 +43,6 @@ func newCommandWatch() *cobra.Command {
 
 			resourceChan := make(chan *Resource)
 			resultChan := make(chan *ResourceResponse)
-			defer close(resourceChan)
-			defer close(resultChan)
 
 			for i := 0; i < 3; i++ {
 				go fetcher(ctx, client, resourceChan, resultChan)
@@ -73,6 +71,7 @@ func resourceGenerator(ctx context.Context, o365Client *office365.Client, interv
 	for {
 		select {
 		case <-sigChan:
+			close(out)
 			wg.Done()
 			return
 		case t := <-ticker.C:
@@ -122,7 +121,7 @@ func fetcher(ctx context.Context, client *office365.Client, in <-chan *Resource,
 		}
 		out <- &ResourceResponse{Records: auditList}
 	}
-
+	close(out)
 }
 
 func printer(in <-chan *ResourceResponse) {
