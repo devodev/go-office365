@@ -200,7 +200,7 @@ func TestStart(t *testing.T) {
 
 	for idx, c := range cases {
 		t.Run(fmt.Sprintf("%d.", idx), func(t *testing.T) {
-			subscriptions, err := client.Subscriptions.Start(context.Background(), "", &c.ContentType, c.Request)
+			subscriptions, err := client.Subscriptions.Start(context.Background(), &c.ContentType, c.Request)
 			if err != nil {
 				t.Errorf("error occured running Subscriptions.Start: %v", err)
 			}

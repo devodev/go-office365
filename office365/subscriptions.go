@@ -78,10 +78,10 @@ func (s *SubscriptionService) List(ctx context.Context) ([]Subscription, error) 
 // If we do not receive an HTTP 200 OK response, the subscription will not be created.
 // Or, if /start is being called to add a webhook to an existing subscription and a response of HTTP 200 OK
 // is not received, the webhook will not be added and the subscription will remain unchanged.
-func (s *SubscriptionService) Start(ctx context.Context, pubIdentifier string, ct *ContentType, webhook *Webhook) (*Subscription, error) {
+func (s *SubscriptionService) Start(ctx context.Context, ct *ContentType, webhook *Webhook) (*Subscription, error) {
 	params := make(url.Values)
-	if pubIdentifier != "" {
-		params.Add("PublisherIdentifier", pubIdentifier)
+	if s.client.pubIdentifier != "" {
+		params.Add("PublisherIdentifier", s.client.pubIdentifier)
 	}
 	if &ct == nil {
 		return nil, ErrContentTypeRequired
