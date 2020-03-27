@@ -41,8 +41,8 @@ func newCommandWatch() *cobra.Command {
 			// create office365 client
 			client := office365.NewClientAuthenticated(&config.Credentials, config.Global.Identifier)
 
-			generatedChan := make(chan *Resource)
-			resultChan := make(chan *Resource)
+			generatedChan := make(chan Resource)
+			resultChan := make(chan Resource)
 
 			for i := 0; i < 3; i++ {
 				go fetcher(ctx, client, generatedChan, resultChan)
@@ -60,7 +60,7 @@ func newCommandWatch() *cobra.Command {
 	return cmd
 }
 
-func resourceGenerator(ctx context.Context, o365Client *office365.Client, intervalMinutes int, out chan *Resource, wg *sync.WaitGroup) {
+func resourceGenerator(ctx context.Context, o365Client *office365.Client, intervalMinutes int, out chan Resource, wg *sync.WaitGroup) {
 	sigChan := getSigChan()
 
 	// TODO: change time.Second into time.Minute. This is to ease testing.
@@ -75,34 +75,36 @@ func resourceGenerator(ctx context.Context, o365Client *office365.Client, interv
 			wg.Done()
 			return
 		case t := <-ticker.C:
-			subscriptions, err := o365Client.Subscriptions.List(ctx)
-			if err != nil {
-				fmt.Printf("error getting subscriptions: %s\n", err)
-				break
-			}
-
-			// TODO: remove time.Minute
-			startTime := t.Add(-(tickerDur + time.Minute))
-			endTime := t
-
-			for _, s := range subscriptions {
-				ct, err := office365.GetContentType(s.ContentType)
+			go func() {
+				subscriptions, err := o365Client.Subscriptions.List(ctx)
 				if err != nil {
-					fmt.Println(err)
-					continue
+					fmt.Printf("error getting subscriptions: %s\n", err)
+					return
 				}
-				resource := &Resource{
-					contentType: ct,
-					startTime:   startTime,
-					endTime:     endTime,
+
+				// TODO: remove time.Minute
+				startTime := t.Add(-(tickerDur + time.Minute))
+				endTime := t
+
+				for _, s := range subscriptions {
+					ct, err := office365.GetContentType(s.ContentType)
+					if err != nil {
+						fmt.Println(err)
+						continue
+					}
+					resource := Resource{
+						contentType: ct,
+						startTime:   startTime,
+						endTime:     endTime,
+					}
+					out <- resource
 				}
-				out <- resource
-			}
+			}()
 		}
 	}
 }
 
-func fetcher(ctx context.Context, client *office365.Client, in <-chan *Resource, out chan *Resource) {
+func fetcher(ctx context.Context, client *office365.Client, in <-chan Resource, out chan Resource) {
 	defer close(out)
 	for r := range in {
 		content, err := client.Subscriptions.Content(ctx, r.contentType, r.startTime, r.endTime)
@@ -125,7 +127,7 @@ func fetcher(ctx context.Context, client *office365.Client, in <-chan *Resource,
 	}
 }
 
-func printer(in <-chan *Resource) {
+func printer(in <-chan Resource) {
 	for r := range in {
 		for _, a := range r.Records {
 			auditStr, err := json.Marshal(a)
