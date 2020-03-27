@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/devodev/go-graph/office365"
+	"github.com/devodev/go-office365/office365"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -65,5 +65,8 @@ func initConfig() {
 // Config stores credentials and application
 // specific attributes.
 type Config struct {
+	Global struct {
+		Identifier string
+	}
 	Credentials office365.Credentials
 }

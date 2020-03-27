@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/devodev/go-graph/office365"
+	"github.com/devodev/go-office365/office365"
 	"github.com/spf13/cobra"
 )
 
@@ -16,9 +16,8 @@ func init() {
 
 func newCommandContent() *cobra.Command {
 	var (
-		pubIdentifier string
-		startTime     string
-		endTime       string
+		startTime string
+		endTime   string
 	)
 
 	cmd := &cobra.Command{
@@ -41,14 +40,11 @@ func newCommandContent() *cobra.Command {
 			}
 
 			// parse optional args
-			if pubIdentifier == "" {
-				pubIdentifier = config.Credentials.ClientID
-			}
 			startTime := parseDate(startTime)
 			endTime := parseDate(endTime)
 
-			client := office365.NewClientAuthenticated(&config.Credentials)
-			content, err := client.Subscriptions.Content(context.Background(), pubIdentifier, ct, startTime, endTime)
+			client := office365.NewClientAuthenticated(&config.Credentials, config.Global.Identifier)
+			content, err := client.Subscriptions.Content(context.Background(), ct, startTime, endTime)
 			if err != nil {
 				fmt.Printf("error getting content: %s\n", err)
 				return
@@ -63,7 +59,6 @@ func newCommandContent() *cobra.Command {
 			}
 		},
 	}
-	cmd.Flags().StringVar(&pubIdentifier, "identifier", "", "Publisher Identifier")
 	cmd.Flags().StringVar(&startTime, "start", "", "Start time")
 	cmd.Flags().StringVar(&endTime, "end", "", "End time")
 

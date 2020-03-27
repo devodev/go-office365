@@ -10,7 +10,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/devodev/go-graph/office365"
+	"github.com/devodev/go-office365/office365"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -20,10 +20,6 @@ func init() {
 }
 
 func newCommandWatch() *cobra.Command {
-	var (
-		pubIdentifier string
-	)
-
 	cmd := &cobra.Command{
 		Use:   "watch [config]",
 		Short: "Fetch audit events at regular intervals.",
@@ -43,12 +39,7 @@ func newCommandWatch() *cobra.Command {
 			defer cancel()
 
 			// create office365 client
-			client := office365.NewClientAuthenticated(&config.Credentials)
-
-			// parse optional args
-			if pubIdentifier == "" {
-				pubIdentifier = config.Credentials.ClientID
-			}
+			client := office365.NewClientAuthenticated(&config.Credentials, config.Global.Identifier)
 
 			resourceChan := make(chan *Resource)
 			resultChan := make(chan *ResourceResponse)
@@ -62,17 +53,15 @@ func newCommandWatch() *cobra.Command {
 			var wg sync.WaitGroup
 			wg.Add(1)
 
-			go main(ctx, client, pubIdentifier, watchConfig.Global.TickerIntervalMinutes, resourceChan, &wg)
+			go main(ctx, client, watchConfig.Global.TickerIntervalMinutes, resourceChan, &wg)
 
 			wg.Wait()
 		},
 	}
-	cmd.Flags().StringVar(&pubIdentifier, "identifier", "", "Publisher Identifier")
-
 	return cmd
 }
 
-func main(ctx context.Context, o365Client *office365.Client, pubIdentifier string, intervalMinutes int, out chan *Resource, wg *sync.WaitGroup) {
+func main(ctx context.Context, o365Client *office365.Client, intervalMinutes int, out chan *Resource, wg *sync.WaitGroup) {
 	sigChan := getSigChan()
 
 	// TODO: change time.Second into time.Minute. This is to ease testing.
@@ -85,7 +74,7 @@ func main(ctx context.Context, o365Client *office365.Client, pubIdentifier strin
 			wg.Done()
 			return
 		case t := <-ticker.C:
-			subscriptions, err := o365Client.Subscriptions.List(ctx, pubIdentifier)
+			subscriptions, err := o365Client.Subscriptions.List(ctx)
 			if err != nil {
 				fmt.Printf("error getting subscriptions: %s\n", err)
 				break
@@ -102,10 +91,9 @@ func main(ctx context.Context, o365Client *office365.Client, pubIdentifier strin
 					continue
 				}
 				resource := &Resource{
-					pubIdentifier: pubIdentifier,
-					contentType:   ct,
-					startTime:     startTime,
-					endTime:       endTime,
+					contentType: ct,
+					startTime:   startTime,
+					endTime:     endTime,
 				}
 				out <- resource
 			}
@@ -115,7 +103,7 @@ func main(ctx context.Context, o365Client *office365.Client, pubIdentifier strin
 
 func fetcher(ctx context.Context, client *office365.Client, in <-chan *Resource, out chan *ResourceResponse) {
 	for r := range in {
-		content, err := client.Subscriptions.Content(ctx, r.pubIdentifier, r.contentType, r.startTime, r.endTime)
+		content, err := client.Subscriptions.Content(ctx, r.contentType, r.startTime, r.endTime)
 		if err != nil {
 			fmt.Printf("error getting content: %s\n", err)
 			continue
@@ -158,10 +146,9 @@ type WatchConfig struct {
 
 // Resource .
 type Resource struct {
-	pubIdentifier string
-	contentType   *office365.ContentType
-	startTime     time.Time
-	endTime       time.Time
+	contentType *office365.ContentType
+	startTime   time.Time
+	endTime     time.Time
 }
 
 // ResourceResponse .

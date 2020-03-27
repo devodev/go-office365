@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/devodev/go-graph/office365"
+	"github.com/devodev/go-office365/office365"
 	"github.com/spf13/cobra"
 )
 
@@ -14,21 +14,13 @@ func init() {
 }
 
 func newCommandSubscriptions() *cobra.Command {
-	var pubIdentifier string
-
 	cmd := &cobra.Command{
 		Use:   "subscriptions",
 		Short: "List current subscriptions.",
 		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
-
-			// parse optional args
-			if pubIdentifier == "" {
-				pubIdentifier = config.Credentials.ClientID
-			}
-
-			client := office365.NewClientAuthenticated(&config.Credentials)
-			subscriptions, err := client.Subscriptions.List(context.Background(), pubIdentifier)
+			client := office365.NewClientAuthenticated(&config.Credentials, config.Global.Identifier)
+			subscriptions, err := client.Subscriptions.List(context.Background())
 			if err != nil {
 				fmt.Printf("error getting subscriptions: %s\n", err)
 				return
@@ -43,7 +35,5 @@ func newCommandSubscriptions() *cobra.Command {
 			}
 		},
 	}
-	cmd.Flags().StringVar(&pubIdentifier, "identifier", "", "Publisher Identifier")
-
 	return cmd
 }

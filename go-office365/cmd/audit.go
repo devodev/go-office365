@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/devodev/go-graph/office365"
+	"github.com/devodev/go-office365/office365"
 	"github.com/spf13/cobra"
 )
 
@@ -28,7 +28,7 @@ func newCommandAudit() *cobra.Command {
 				return
 			}
 
-			client := office365.NewClientAuthenticated(&config.Credentials)
+			client := office365.NewClientAuthenticated(&config.Credentials, config.Global.Identifier)
 			audits, err := client.Subscriptions.Audit(context.Background(), idArg)
 			if err != nil {
 				fmt.Printf("error getting audits: %s\n", err)
