@@ -225,9 +225,12 @@ func (s *SubscriptionService) resourceGenerator(ctx context.Context, intervalMin
 			return
 		case t := <-ticker.C:
 			go func() {
+				resource := Resource{}
+
 				subscriptions, err := s.client.Subscriptions.List(ctx)
 				if err != nil {
-					fmt.Printf("error getting subscriptions: %s\n", err)
+					resource.AddError(err)
+					out <- resource
 					return
 				}
 
@@ -241,11 +244,7 @@ func (s *SubscriptionService) resourceGenerator(ctx context.Context, intervalMin
 						fmt.Println(err)
 						continue
 					}
-					resource := Resource{
-						contentType: ct,
-						startTime:   startTime,
-						endTime:     endTime,
-					}
+					resource.SetRequest(ct, startTime, endTime)
 					out <- resource
 				}
 			}()
@@ -256,32 +255,63 @@ func (s *SubscriptionService) resourceGenerator(ctx context.Context, intervalMin
 func (s *SubscriptionService) fetcher(ctx context.Context, in <-chan Resource, out chan Resource) {
 	defer close(out)
 	for r := range in {
-		content, err := s.client.Subscriptions.Content(ctx, r.contentType, r.startTime, r.endTime)
+		content, err := s.client.Subscriptions.Content(ctx, r.Request.contentType, r.Request.startTime, r.Request.endTime)
 		if err != nil {
-			fmt.Printf("error getting content: %s\n", err)
+			r.AddError(err)
+			out <- r
 			continue
 		}
 
-		var auditList []AuditRecord
+		var records []AuditRecord
 		for _, c := range content {
 			audits, err := s.client.Subscriptions.Audit(ctx, c.ContentID)
 			if err != nil {
-				fmt.Printf("error getting audits: %s\n", err)
+				r.AddError(err)
+				out <- r
 				continue
 			}
-			auditList = append(auditList, audits...)
+			records = append(records, audits...)
 		}
-		r.Records = auditList
+		r.SetResponse(records)
 		out <- r
 	}
 }
 
 // Resource .
 type Resource struct {
+	Request  ResourceRequest
+	Response ResourceResponse
+	Errors   []error
+}
+
+// AddError .
+func (r *Resource) AddError(err error) {
+	r.Errors = append(r.Errors, err)
+}
+
+// SetRequest .
+func (r *Resource) SetRequest(ct *ContentType, startTime time.Time, endTime time.Time) {
+	r.Request = ResourceRequest{
+		contentType: ct,
+		startTime:   startTime,
+		endTime:     endTime,
+	}
+}
+
+// SetResponse .
+func (r *Resource) SetResponse(records []AuditRecord) {
+	r.Response = ResourceResponse{records}
+}
+
+// ResourceRequest .
+type ResourceRequest struct {
 	contentType *ContentType
 	startTime   time.Time
 	endTime     time.Time
+}
 
+// ResourceResponse .
+type ResourceResponse struct {
 	Records []AuditRecord
 }
 
