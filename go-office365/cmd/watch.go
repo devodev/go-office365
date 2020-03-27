@@ -131,15 +131,34 @@ func main(ctx context.Context, o365Client *office365.Client, pubIdentifier strin
 
 				queue := make(chan []office365.AuditRecord)
 
-				go fetcher(ctx, o365Client, pubIdentifier, ct, startTime, endTime, queue)
+				resource := &Resource{
+					client:        o365Client,
+					pubIdentifier: pubIdentifier,
+					contentType:   ct,
+					startTime:     startTime,
+					endTime:       endTime,
+				}
+
+				go fetcher(ctx, resource, queue)
 				go printer(queue)
 			}
 		}
 	}
 }
 
-func fetcher(ctx context.Context, o365Client *office365.Client, pubIdentifier string, ct *office365.ContentType, start time.Time, end time.Time, queue chan []office365.AuditRecord) {
-	content, err := o365Client.Subscriptions.Content(ctx, pubIdentifier, ct, start, end)
+// Resource .
+type Resource struct {
+	client *office365.Client
+
+	pubIdentifier string
+	contentType   *office365.ContentType
+	startTime     time.Time
+	endTime       time.Time
+}
+
+func fetcher(ctx context.Context, resource *Resource, queue chan []office365.AuditRecord) {
+	content, err := resource.client.Subscriptions.Content(
+		ctx, resource.pubIdentifier, resource.contentType, resource.startTime, resource.endTime)
 	if err != nil {
 		fmt.Printf("error getting content: %s\n", err)
 		return
@@ -147,7 +166,7 @@ func fetcher(ctx context.Context, o365Client *office365.Client, pubIdentifier st
 
 	var auditList []office365.AuditRecord
 	for _, c := range content {
-		audits, err := o365Client.Subscriptions.Audit(ctx, c.ContentID)
+		audits, err := resource.client.Subscriptions.Audit(ctx, c.ContentID)
 		if err != nil {
 			fmt.Printf("error getting audits: %s\n", err)
 			continue
