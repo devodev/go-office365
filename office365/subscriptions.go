@@ -43,7 +43,7 @@ type SubscriptionService service
 // List current subscriptions
 // This operation returns a collection of the current subscriptions together with the associated webhooks.
 func (s *SubscriptionService) List(ctx context.Context) ([]Subscription, error) {
-	var params QueryParams
+	params := NewQueryParams()
 	params.AddPubIdentifier(s.client.pubIdentifier)
 
 	req, err := s.client.newRequest("GET", "subscriptions/list", params.Values, nil)
@@ -78,7 +78,7 @@ func (s *SubscriptionService) List(ctx context.Context) ([]Subscription, error) 
 // Or, if /start is being called to add a webhook to an existing subscription and a response of HTTP 200 OK
 // is not received, the webhook will not be added and the subscription will remain unchanged.
 func (s *SubscriptionService) Start(ctx context.Context, ct *ContentType, webhook *Webhook) (*Subscription, error) {
-	var params QueryParams
+	params := NewQueryParams()
 	params.AddPubIdentifier(s.client.pubIdentifier)
 	if err := params.AddContentType(ct); err != nil {
 		return nil, err
@@ -112,7 +112,7 @@ func (s *SubscriptionService) Start(ctx context.Context, ct *ContentType, webhoo
 // If the subscription is later restarted, you will have access to new content from that point forward.
 // You will not be able to retrieve content that was available between the time the subscription was stopped and restarted.
 func (s *SubscriptionService) Stop(ctx context.Context, ct *ContentType) error {
-	var params QueryParams
+	params := NewQueryParams()
 	params.AddPubIdentifier(s.client.pubIdentifier)
 	if err := params.AddContentType(ct); err != nil {
 		return err
@@ -136,7 +136,7 @@ func (s *SubscriptionService) Stop(ctx context.Context, ct *ContentType) error {
 // The content will be listed in the order in which the aggregations become available, but the events and actions within
 // the aggregations are not guaranteed to be sequential. An error is returned if the subscription status is disabled.
 func (s *SubscriptionService) Content(ctx context.Context, ct *ContentType, startTime time.Time, endTime time.Time) ([]Content, error) {
-	var params QueryParams
+	params := NewQueryParams()
 	params.AddPubIdentifier(s.client.pubIdentifier)
 	if err := params.AddContentType(ct); err != nil {
 		return nil, err
@@ -201,6 +201,11 @@ func (s *SubscriptionService) Audit(ctx context.Context, contentID string) ([]Au
 // QueryParams .
 type QueryParams struct {
 	url.Values
+}
+
+// NewQueryParams .
+func NewQueryParams() *QueryParams {
+	return &QueryParams{make(url.Values)}
 }
 
 // AddPubIdentifier .
