@@ -108,7 +108,7 @@ func main(ctx context.Context, o365Client *office365.Client, pubIdentifier strin
 		select {
 		case <-exit:
 			done <- true
-			break
+			return
 		case t := <-tc.C:
 
 			subscriptions, err := o365Client.Subscriptions.List(ctx, pubIdentifier)
