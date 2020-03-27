@@ -42,10 +42,10 @@ type SubscriptionService service
 //
 // List current subscriptions
 // This operation returns a collection of the current subscriptions together with the associated webhooks.
-func (s *SubscriptionService) List(ctx context.Context, pubIdentifier string) ([]Subscription, error) {
+func (s *SubscriptionService) List(ctx context.Context) ([]Subscription, error) {
 	params := url.Values{}
-	if pubIdentifier != "" {
-		params.Add("PublisherIdentifier", pubIdentifier)
+	if s.client.pubIdentifier != "" {
+		params.Add("PublisherIdentifier", s.client.pubIdentifier)
 	}
 	req, err := s.client.newRequest("GET", "subscriptions/list", params, nil)
 	if err != nil {

@@ -111,7 +111,7 @@ func TestList(t *testing.T) {
         ]`)
 	})
 
-	subscriptions, err := client.Subscriptions.List(context.Background(), "")
+	subscriptions, err := client.Subscriptions.List(context.Background())
 	if err != nil {
 		t.Errorf("error occured running Subscriptions.List: %v", err)
 	}
