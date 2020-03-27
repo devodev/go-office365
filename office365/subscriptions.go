@@ -43,11 +43,10 @@ type SubscriptionService service
 // List current subscriptions
 // This operation returns a collection of the current subscriptions together with the associated webhooks.
 func (s *SubscriptionService) List(ctx context.Context) ([]Subscription, error) {
-	params := url.Values{}
-	if s.client.pubIdentifier != "" {
-		params.Add("PublisherIdentifier", s.client.pubIdentifier)
-	}
-	req, err := s.client.newRequest("GET", "subscriptions/list", params, nil)
+	var params QueryParams
+	params.AddPubIdentifier(s.client.pubIdentifier)
+
+	req, err := s.client.newRequest("GET", "subscriptions/list", params.Values, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -79,14 +78,11 @@ func (s *SubscriptionService) List(ctx context.Context) ([]Subscription, error) 
 // Or, if /start is being called to add a webhook to an existing subscription and a response of HTTP 200 OK
 // is not received, the webhook will not be added and the subscription will remain unchanged.
 func (s *SubscriptionService) Start(ctx context.Context, ct *ContentType, webhook *Webhook) (*Subscription, error) {
-	params := make(url.Values)
-	if s.client.pubIdentifier != "" {
-		params.Add("PublisherIdentifier", s.client.pubIdentifier)
+	var params QueryParams
+	params.AddPubIdentifier(s.client.pubIdentifier)
+	if err := params.AddContentType(ct); err != nil {
+		return nil, err
 	}
-	if &ct == nil {
-		return nil, ErrContentTypeRequired
-	}
-	params.Add("contentType", ct.String())
 
 	var payload io.Reader
 	if webhook != nil {
@@ -97,7 +93,7 @@ func (s *SubscriptionService) Start(ctx context.Context, ct *ContentType, webhoo
 		payload = bytes.NewBuffer(data)
 	}
 
-	req, err := s.client.newRequest("POST", "subscriptions/start", params, payload)
+	req, err := s.client.newRequest("POST", "subscriptions/start", params.Values, payload)
 	if err != nil {
 		return nil, err
 	}
@@ -115,17 +111,14 @@ func (s *SubscriptionService) Start(ctx context.Context, ct *ContentType, webhoo
 // When a subscription is stopped, you will no longer receive notifications and you will not be able to retrieve available content.
 // If the subscription is later restarted, you will have access to new content from that point forward.
 // You will not be able to retrieve content that was available between the time the subscription was stopped and restarted.
-func (s *SubscriptionService) Stop(ctx context.Context, pubIdentifier string, ct *ContentType) error {
-	params := make(url.Values)
-	if pubIdentifier != "" {
-		params.Add("PublisherIdentifier", pubIdentifier)
+func (s *SubscriptionService) Stop(ctx context.Context, ct *ContentType) error {
+	var params QueryParams
+	params.AddPubIdentifier(s.client.pubIdentifier)
+	if err := params.AddContentType(ct); err != nil {
+		return err
 	}
-	if &ct == nil {
-		return ErrContentTypeRequired
-	}
-	params.Add("contentType", ct.String())
 
-	req, err := s.client.newRequest("POST", "subscriptions/stop", params, nil)
+	req, err := s.client.newRequest("POST", "subscriptions/stop", params.Values, nil)
 	if err != nil {
 		return err
 	}
@@ -142,41 +135,20 @@ func (s *SubscriptionService) Stop(ctx context.Context, pubIdentifier string, ct
 // The content is an aggregation of actions and events harvested from multiple servers across multiple datacenters.
 // The content will be listed in the order in which the aggregations become available, but the events and actions within
 // the aggregations are not guaranteed to be sequential. An error is returned if the subscription status is disabled.
-func (s *SubscriptionService) Content(ctx context.Context, pubIdentifier string, ct *ContentType, startTime time.Time, endTime time.Time) ([]Content, error) {
-	params := make(url.Values)
-
-	if pubIdentifier != "" {
-		params.Add("PublisherIdentifier", pubIdentifier)
+func (s *SubscriptionService) Content(ctx context.Context, ct *ContentType, startTime time.Time, endTime time.Time) ([]Content, error) {
+	var params QueryParams
+	params.AddPubIdentifier(s.client.pubIdentifier)
+	if err := params.AddContentType(ct); err != nil {
+		return nil, err
 	}
-	if &ct == nil {
-		return nil, ErrContentTypeRequired
-	}
-	params.Add("contentType", ct.String())
-
-	oneOrMoreDatetime := !startTime.IsZero() || !endTime.IsZero()
-	bothDatetime := !startTime.IsZero() && !endTime.IsZero()
-	if oneOrMoreDatetime && !bothDatetime {
-		return nil, ErrIntervalMismatch
-	}
-	if bothDatetime {
-		interval := endTime.Sub(startTime)
-		if interval <= 0 {
-			return nil, ErrIntervalNegative
-		}
-		if interval > intervalOneDay {
-			return nil, ErrIntervalDay
-		}
-		if startTime.Before(time.Now().Add(-(intervalOneDay * 7))) {
-			return nil, ErrIntervalWeek
-		}
-		params.Add("startTime", startTime.Format(RequestDatetimeFormat))
-		params.Add("endTime", endTime.Format(RequestDatetimeFormat))
+	if err := params.AddStartEndTime(startTime, endTime); err != nil {
+		return nil, err
 	}
 
 	out := []Content{}
 	var err error
 	for {
-		req, err := s.client.newRequest("GET", "subscriptions/content", params, nil)
+		req, err := s.client.newRequest("GET", "subscriptions/content", params.Values, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -224,6 +196,51 @@ func (s *SubscriptionService) Audit(ctx context.Context, contentID string) ([]Au
 	var out []AuditRecord
 	_, err = s.client.do(ctx, req, &out)
 	return out, err
+}
+
+// QueryParams .
+type QueryParams struct {
+	url.Values
+}
+
+// AddPubIdentifier .
+func (p *QueryParams) AddPubIdentifier(pubIdentifier string) {
+	if pubIdentifier != "" {
+		p.Add("PublisherIdentifier", pubIdentifier)
+	}
+}
+
+// AddContentType .
+func (p *QueryParams) AddContentType(ct *ContentType) error {
+	if &ct == nil {
+		return ErrContentTypeRequired
+	}
+	p.Add("contentType", ct.String())
+	return nil
+}
+
+// AddStartEndTime .
+func (p *QueryParams) AddStartEndTime(startTime time.Time, endTime time.Time) error {
+	oneOrMoreDatetime := !startTime.IsZero() || !endTime.IsZero()
+	bothDatetime := !startTime.IsZero() && !endTime.IsZero()
+	if oneOrMoreDatetime && !bothDatetime {
+		return ErrIntervalMismatch
+	}
+	if bothDatetime {
+		interval := endTime.Sub(startTime)
+		if interval <= 0 {
+			return ErrIntervalNegative
+		}
+		if interval > intervalOneDay {
+			return ErrIntervalDay
+		}
+		if startTime.Before(time.Now().Add(-(intervalOneDay * 7))) {
+			return ErrIntervalWeek
+		}
+		p.Add("startTime", startTime.Format(RequestDatetimeFormat))
+		p.Add("endTime", endTime.Format(RequestDatetimeFormat))
+	}
+	return nil
 }
 
 // Subscription represents a response.

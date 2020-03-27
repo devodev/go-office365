@@ -228,7 +228,7 @@ func TestStop(t *testing.T) {
 
 	for idx, c := range cases {
 		t.Run(fmt.Sprintf("%d.", idx), func(t *testing.T) {
-			err := client.Subscriptions.Stop(context.Background(), "", &c.ContentType)
+			err := client.Subscriptions.Stop(context.Background(), &c.ContentType)
 			if err != nil {
 				t.Errorf("error occured running Subscriptions.Stop: %v", err)
 			}
@@ -461,7 +461,7 @@ func TestContent(t *testing.T) {
 
 	for idx, c := range cases {
 		t.Run(fmt.Sprintf("%d.", idx+1), func(t *testing.T) {
-			contents, err := client.Subscriptions.Content(context.Background(), "", &c.ContentType, c.StartTime, c.EndTime)
+			contents, err := client.Subscriptions.Content(context.Background(), &c.ContentType, c.StartTime, c.EndTime)
 			testError(t, c.Want, c.WantError, err)
 			if len(contents) == 0 && len(c.Want) == 0 {
 				return
