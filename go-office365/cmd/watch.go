@@ -6,9 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"sync"
 	"syscall"
-	"time"
 
 	"github.com/devodev/go-office365/office365"
 	"github.com/spf13/cobra"
@@ -35,99 +33,30 @@ func newCommandWatch() *cobra.Command {
 				return
 			}
 
-			ctx, cancel := context.WithCancel(context.Background())
-			defer cancel()
-
 			// create office365 client
 			client := office365.NewClientAuthenticated(&config.Credentials, config.Global.Identifier)
 
-			generatedChan := make(chan Resource)
-			resultChan := make(chan Resource)
+			ctx, cancel := context.WithCancel(context.Background())
+			go func() {
+				sigChan := getSigChan()
+				for {
+					select {
+					case <-sigChan:
+						cancel()
+						return
+					default:
+					}
+				}
+			}()
 
-			for i := 0; i < 3; i++ {
-				go fetcher(ctx, client, generatedChan, resultChan)
-			}
-			go printer(resultChan)
-
-			var wg sync.WaitGroup
-			wg.Add(1)
-
-			go resourceGenerator(ctx, client, watchConfig.Global.TickerIntervalMinutes, generatedChan, &wg)
-
-			wg.Wait()
+			resultChan := client.Subscriptions.Watch(ctx, watchConfig.Global.FetcherCount, watchConfig.Global.TickerIntervalMinutes)
+			printer(resultChan)
 		},
 	}
 	return cmd
 }
 
-func resourceGenerator(ctx context.Context, o365Client *office365.Client, intervalMinutes int, out chan Resource, wg *sync.WaitGroup) {
-	sigChan := getSigChan()
-
-	// TODO: change time.Second into time.Minute. This is to ease testing.
-	tickerDur := time.Duration(intervalMinutes) * time.Second
-	ticker := time.NewTicker(tickerDur)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-sigChan:
-			close(out)
-			wg.Done()
-			return
-		case t := <-ticker.C:
-			go func() {
-				subscriptions, err := o365Client.Subscriptions.List(ctx)
-				if err != nil {
-					fmt.Printf("error getting subscriptions: %s\n", err)
-					return
-				}
-
-				// TODO: remove time.Minute
-				startTime := t.Add(-(tickerDur + time.Minute))
-				endTime := t
-
-				for _, s := range subscriptions {
-					ct, err := office365.GetContentType(s.ContentType)
-					if err != nil {
-						fmt.Println(err)
-						continue
-					}
-					resource := Resource{
-						contentType: ct,
-						startTime:   startTime,
-						endTime:     endTime,
-					}
-					out <- resource
-				}
-			}()
-		}
-	}
-}
-
-func fetcher(ctx context.Context, client *office365.Client, in <-chan Resource, out chan Resource) {
-	defer close(out)
-	for r := range in {
-		content, err := client.Subscriptions.Content(ctx, r.contentType, r.startTime, r.endTime)
-		if err != nil {
-			fmt.Printf("error getting content: %s\n", err)
-			continue
-		}
-
-		var auditList []office365.AuditRecord
-		for _, c := range content {
-			audits, err := client.Subscriptions.Audit(ctx, c.ContentID)
-			if err != nil {
-				fmt.Printf("error getting audits: %s\n", err)
-				continue
-			}
-			auditList = append(auditList, audits...)
-		}
-		r.Records = auditList
-		out <- r
-	}
-}
-
-func printer(in <-chan Resource) {
+func printer(in <-chan office365.Resource) {
 	for r := range in {
 		for _, a := range r.Records {
 			auditStr, err := json.Marshal(a)
@@ -144,17 +73,9 @@ func printer(in <-chan Resource) {
 type WatchConfig struct {
 	Global struct {
 		TickerIntervalMinutes int
+		FetcherCount          int
 		PubIdentifier         string
 	}
-}
-
-// Resource .
-type Resource struct {
-	contentType *office365.ContentType
-	startTime   time.Time
-	endTime     time.Time
-
-	Records []office365.AuditRecord
 }
 
 func loadConfig(confPath string) (*WatchConfig, error) {

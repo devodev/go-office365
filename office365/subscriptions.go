@@ -198,6 +198,93 @@ func (s *SubscriptionService) Audit(ctx context.Context, contentID string) ([]Au
 	return out, err
 }
 
+// Watch .
+func (s *SubscriptionService) Watch(ctx context.Context, fetcherCount int, intervalMinutes int) <-chan Resource {
+	// Watch .
+	generatedChan := make(chan Resource)
+	resultChan := make(chan Resource)
+
+	for i := 0; i < fetcherCount; i++ {
+		go s.fetcher(ctx, generatedChan, resultChan)
+	}
+	go s.resourceGenerator(ctx, intervalMinutes, generatedChan)
+
+	return resultChan
+}
+
+func (s *SubscriptionService) resourceGenerator(ctx context.Context, intervalMinutes int, out chan Resource) {
+	// TODO: change time.Second into time.Minute. This is to ease testing.
+	tickerDur := time.Duration(intervalMinutes) * time.Second
+	ticker := time.NewTicker(tickerDur)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			close(out)
+			return
+		case t := <-ticker.C:
+			go func() {
+				subscriptions, err := s.client.Subscriptions.List(ctx)
+				if err != nil {
+					fmt.Printf("error getting subscriptions: %s\n", err)
+					return
+				}
+
+				// TODO: remove time.Minute
+				startTime := t.Add(-(tickerDur + time.Minute))
+				endTime := t
+
+				for _, sub := range subscriptions {
+					ct, err := GetContentType(sub.ContentType)
+					if err != nil {
+						fmt.Println(err)
+						continue
+					}
+					resource := Resource{
+						contentType: ct,
+						startTime:   startTime,
+						endTime:     endTime,
+					}
+					out <- resource
+				}
+			}()
+		}
+	}
+}
+
+func (s *SubscriptionService) fetcher(ctx context.Context, in <-chan Resource, out chan Resource) {
+	defer close(out)
+	for r := range in {
+		content, err := s.client.Subscriptions.Content(ctx, r.contentType, r.startTime, r.endTime)
+		if err != nil {
+			fmt.Printf("error getting content: %s\n", err)
+			continue
+		}
+
+		var auditList []AuditRecord
+		for _, c := range content {
+			audits, err := s.client.Subscriptions.Audit(ctx, c.ContentID)
+			if err != nil {
+				fmt.Printf("error getting audits: %s\n", err)
+				continue
+			}
+			auditList = append(auditList, audits...)
+		}
+		r.Records = auditList
+		out <- r
+	}
+}
+
+// Resource .
+type Resource struct {
+	contentType *ContentType
+	startTime   time.Time
+	endTime     time.Time
+
+	Records []AuditRecord
+}
+
 // QueryParams .
 type QueryParams struct {
 	url.Values
