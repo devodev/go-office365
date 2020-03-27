@@ -41,18 +41,18 @@ func newCommandWatch() *cobra.Command {
 			// create office365 client
 			client := office365.NewClientAuthenticated(&config.Credentials, config.Global.Identifier)
 
-			resourceChan := make(chan *Resource)
-			resultChan := make(chan *ResourceResponse)
+			generatedChan := make(chan *Resource)
+			resultChan := make(chan *Resource)
 
 			for i := 0; i < 3; i++ {
-				go fetcher(ctx, client, resourceChan, resultChan)
+				go fetcher(ctx, client, generatedChan, resultChan)
 			}
 			go printer(resultChan)
 
 			var wg sync.WaitGroup
 			wg.Add(1)
 
-			go resourceGenerator(ctx, client, watchConfig.Global.TickerIntervalMinutes, resourceChan, &wg)
+			go resourceGenerator(ctx, client, watchConfig.Global.TickerIntervalMinutes, generatedChan, &wg)
 
 			wg.Wait()
 		},
@@ -102,7 +102,8 @@ func resourceGenerator(ctx context.Context, o365Client *office365.Client, interv
 	}
 }
 
-func fetcher(ctx context.Context, client *office365.Client, in <-chan *Resource, out chan *ResourceResponse) {
+func fetcher(ctx context.Context, client *office365.Client, in <-chan *Resource, out chan *Resource) {
+	defer close(out)
 	for r := range in {
 		content, err := client.Subscriptions.Content(ctx, r.contentType, r.startTime, r.endTime)
 		if err != nil {
@@ -119,12 +120,12 @@ func fetcher(ctx context.Context, client *office365.Client, in <-chan *Resource,
 			}
 			auditList = append(auditList, audits...)
 		}
-		out <- &ResourceResponse{Records: auditList}
+		r.Records = auditList
+		out <- r
 	}
-	close(out)
 }
 
-func printer(in <-chan *ResourceResponse) {
+func printer(in <-chan *Resource) {
 	for r := range in {
 		for _, a := range r.Records {
 			auditStr, err := json.Marshal(a)
@@ -150,10 +151,7 @@ type Resource struct {
 	contentType *office365.ContentType
 	startTime   time.Time
 	endTime     time.Time
-}
 
-// ResourceResponse .
-type ResourceResponse struct {
 	Records []office365.AuditRecord
 }
 
