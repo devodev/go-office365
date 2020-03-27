@@ -7,8 +7,10 @@ import (
 )
 
 func TestClientDefaults(t *testing.T) {
+	tenantID := ""
+	pubIdentifier := ""
 
-	client := NewClient(nil, "")
+	client := NewClient(nil, tenantID, pubIdentifier)
 	if client == nil {
 		t.Fatal("something went terribly wrong")
 	}
@@ -26,5 +28,8 @@ func TestClientDefaults(t *testing.T) {
 	version := client.Version()
 	if version != defaultVersion {
 		t.Errorf("Version is not default value. got: %v want: %v", version, defaultVersion)
+	}
+	if pubIdentifier == "" && client.pubIdentifier != client.tenantID {
+		t.Errorf("pubIdentifier is not default value(tenantID). got: %v want: %v", client.pubIdentifier, client.tenantID)
 	}
 }

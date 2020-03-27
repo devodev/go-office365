@@ -63,8 +63,9 @@ type Client struct {
 	UserAgent string
 	version   string
 
-	client   *http.Client
-	tenantID string
+	client        *http.Client
+	tenantID      string
+	pubIdentifier string
 
 	// inspired by go-github:
 	// https://github.com/google/go-github/blob/d913de9ce1e8ed5550283b448b37b721b61cc3b3/github/github.go#L159
@@ -85,18 +86,22 @@ type service struct {
 // Note that the default client has no way of authenticating itself against
 // the Microsoft Office365 Management Activity  API.
 // A convenience function is provided just for that: NewClientAuthenticated.
-func NewClient(httpClient *http.Client, tenantID string) *Client {
+func NewClient(httpClient *http.Client, tenantID string, pubIdentifier string) *Client {
 	if httpClient == nil {
 		httpClient = &http.Client{Timeout: defaultTimeout}
+	}
+	if pubIdentifier == "" {
+		pubIdentifier = tenantID
 	}
 	baseURL, _ := url.Parse(defaultBaseURL)
 
 	c := &Client{
-		BaseURL:   baseURL,
-		UserAgent: defaultUserAgent,
-		version:   defaultVersion,
-		client:    httpClient,
-		tenantID:  tenantID,
+		BaseURL:       baseURL,
+		UserAgent:     defaultUserAgent,
+		version:       defaultVersion,
+		client:        httpClient,
+		tenantID:      tenantID,
+		pubIdentifier: pubIdentifier,
 	}
 	c.common.client = c
 
@@ -110,9 +115,11 @@ func (c *Client) Version() string {
 }
 
 // NewClientAuthenticated returns an authenticated Client.
-func NewClientAuthenticated(c *Credentials) *Client {
+// pubIdentifier is used on Microsoft side to group queries
+// together in terms of quotas and limitations.
+func NewClientAuthenticated(c *Credentials, pubIdentifier string) *Client {
 	oauthClient := OAuthClient(context.Background(), c)
-	return NewClient(oauthClient, c.TenantID)
+	return NewClient(oauthClient, c.TenantID, pubIdentifier)
 }
 
 // newRequest generates a http.Request based on the method
