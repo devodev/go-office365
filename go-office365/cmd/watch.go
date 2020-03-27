@@ -43,6 +43,7 @@ func newCommandWatch() *cobra.Command {
 
 			resourceChan := make(chan *Resource)
 			resultChan := make(chan *ResourceResponse)
+			defer close(resourceChan)
 			defer close(resultChan)
 
 			for i := 0; i < 3; i++ {
@@ -53,7 +54,7 @@ func newCommandWatch() *cobra.Command {
 			var wg sync.WaitGroup
 			wg.Add(1)
 
-			go main(ctx, client, watchConfig.Global.TickerIntervalMinutes, resourceChan, &wg)
+			go resourceGenerator(ctx, client, watchConfig.Global.TickerIntervalMinutes, resourceChan, &wg)
 
 			wg.Wait()
 		},
@@ -61,7 +62,7 @@ func newCommandWatch() *cobra.Command {
 	return cmd
 }
 
-func main(ctx context.Context, o365Client *office365.Client, intervalMinutes int, out chan *Resource, wg *sync.WaitGroup) {
+func resourceGenerator(ctx context.Context, o365Client *office365.Client, intervalMinutes int, out chan *Resource, wg *sync.WaitGroup) {
 	sigChan := getSigChan()
 
 	// TODO: change time.Second into time.Minute. This is to ease testing.
