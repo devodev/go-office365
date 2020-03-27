@@ -67,6 +67,7 @@ func main(ctx context.Context, o365Client *office365.Client, intervalMinutes int
 	// TODO: change time.Second into time.Minute. This is to ease testing.
 	tickerDur := time.Duration(intervalMinutes) * time.Second
 	ticker := time.NewTicker(tickerDur)
+	defer ticker.Stop()
 
 	for {
 		select {
