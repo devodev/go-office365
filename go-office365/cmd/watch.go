@@ -23,17 +23,14 @@ func newCommandWatch() *cobra.Command {
 		Short: "Fetch audit events at regular intervals.",
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-			// command line args
 			confArg := args[0]
 
-			// load config file
 			watchConfig, err := loadConfig(confArg)
 			if err != nil {
 				fmt.Printf("error occured loading config file: %s\n", err)
 				return
 			}
 
-			// create office365 client
 			client := office365.NewClientAuthenticated(&config.Credentials, config.Global.Identifier)
 
 			ctx, cancel := context.WithCancel(context.Background())
