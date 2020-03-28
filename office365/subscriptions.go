@@ -272,10 +272,10 @@ func (s *SubscriptionService) resourceGenerator(ctx context.Context, intervalSec
 	}
 }
 
-func (s *SubscriptionService) fetcher(ctx context.Context, fetcherLookBehindMinutes int, in <-chan Resource, out chan Resource) {
+func (s *SubscriptionService) fetcher(ctx context.Context, lookBehindMinutes int, in <-chan Resource, out chan Resource) {
 	for r := range in {
-		fetcherLookBehind := time.Duration(fetcherLookBehindMinutes) * time.Minute
-		start := r.Request.EndTime.Add(-(fetcherLookBehind))
+		lookBehind := time.Duration(lookBehindMinutes) * time.Minute
+		start := r.Request.EndTime.Add(-(lookBehind))
 		end := r.Request.EndTime
 
 		content, err := s.client.Subscriptions.Content(ctx, r.Request.ContentType, start, end)
