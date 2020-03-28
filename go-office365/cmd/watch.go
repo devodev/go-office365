@@ -49,7 +49,11 @@ func newCommandWatch() *cobra.Command {
 				}
 			}()
 
-			resultChan := client.Subscriptions.Watch(ctx, watchConfig.Global.FetcherCount, watchConfig.Global.TickerIntervalSeconds)
+			resultChan, err := client.Subscriptions.Watch(ctx, watchConfig.Global.FetcherCount, watchConfig.Global.TickerIntervalSeconds)
+			if err != nil {
+				fmt.Printf("error occured calling watch: %s\n", err)
+				return
+			}
 			printer(resultChan)
 		},
 	}

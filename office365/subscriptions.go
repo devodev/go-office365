@@ -200,8 +200,17 @@ func (s *SubscriptionService) Audit(ctx context.Context, contentID string) ([]Au
 	return out, err
 }
 
-// Watch .
-func (s *SubscriptionService) Watch(ctx context.Context, fetcherCount int, intervalSeconds int) <-chan Resource {
+// Watch is used as a dynamic way for fetching events.
+// It will poll the current subscriptions for available content
+// at regular intervals and returns a channel for consuming returned events.
+func (s *SubscriptionService) Watch(ctx context.Context, fetcherCount int, intervalSeconds int) (<-chan Resource, error) {
+	if intervalSeconds <= 0 {
+		return nil, fmt.Errorf("intervalSeconds must be greater than 0")
+	}
+	intervalDur := time.Duration(intervalSeconds) * time.Second
+	if intervalDur > 24*time.Hour {
+		return nil, fmt.Errorf("intervalSeconds must be less than 24 hours")
+	}
 	generatedChan := make(chan Resource)
 	resultChan := make(chan Resource)
 
@@ -221,7 +230,7 @@ func (s *SubscriptionService) Watch(ctx context.Context, fetcherCount int, inter
 		}
 	}()
 
-	return resultChan
+	return resultChan, nil
 }
 
 func (s *SubscriptionService) resourceGenerator(ctx context.Context, intervalSeconds int, out chan Resource) {
