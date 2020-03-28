@@ -27,7 +27,7 @@ func newCommandWatch() *cobra.Command {
 
 			watchConfig, err := loadConfig(confArg)
 			if err != nil {
-				fmt.Printf("error occured loading config file: %s\n", err)
+				logger.Printf("error occured loading config file: %s\n", err)
 				return
 			}
 
@@ -51,7 +51,7 @@ func newCommandWatch() *cobra.Command {
 				watchConfig.Global.FetcherLookBehindMinutes,
 				watchConfig.Global.TickerIntervalSeconds)
 			if err != nil {
-				fmt.Printf("error occured calling watch: %s\n", err)
+				logger.Printf("error occured calling watch: %s\n", err)
 				return
 			}
 			printer(resultChan)
@@ -63,15 +63,15 @@ func newCommandWatch() *cobra.Command {
 func printer(in <-chan office365.Resource) {
 	for r := range in {
 		for idx, e := range r.Errors {
-			fmt.Printf("[%s] Error%d: %s\n", r.Request.ContentType, idx, e.Error())
+			WriteOut(fmt.Sprintf("[%s] Error%d: %s\n", r.Request.ContentType, idx, e.Error()))
 		}
 		for _, a := range r.Response.Records {
 			auditStr, err := json.Marshal(a)
 			if err != nil {
-				fmt.Printf("error marshalling audit: %s\n", err)
+				logger.Printf("error marshalling audit: %s\n", err)
 				continue
 			}
-			fmt.Printf("[%s] %s\n", r.Request.ContentType, string(auditStr))
+			WriteOut(fmt.Sprintf("[%s] %s\n", r.Request.ContentType, string(auditStr)))
 		}
 	}
 }

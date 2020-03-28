@@ -3,7 +3,6 @@ package cmd
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 
 	"github.com/devodev/go-office365/office365"
 	"github.com/spf13/cobra"
@@ -22,16 +21,16 @@ func newCommandSubscriptions() *cobra.Command {
 			client := office365.NewClientAuthenticated(&config.Credentials, config.Global.Identifier)
 			subscriptions, err := client.Subscriptions.List(context.Background())
 			if err != nil {
-				fmt.Printf("error getting subscriptions: %s\n", err)
+				logger.Printf("error getting subscriptions: %s\n", err)
 				return
 			}
 			for _, u := range subscriptions {
 				userData, err := json.Marshal(u)
 				if err != nil {
-					fmt.Printf("error marshalling subscriptions: %s\n", err)
+					logger.Printf("error marshalling subscriptions: %s\n", err)
 					continue
 				}
-				fmt.Println(string(userData))
+				WriteOut(string(userData))
 			}
 		},
 	}

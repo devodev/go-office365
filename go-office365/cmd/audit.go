@@ -3,7 +3,6 @@ package cmd
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 
 	"github.com/devodev/go-office365/office365"
 	"github.com/spf13/cobra"
@@ -24,23 +23,23 @@ func newCommandAudit() *cobra.Command {
 
 			// validate args
 			if idArg == "" {
-				fmt.Println("audit-id is empty")
+				logger.Println("audit-id is empty")
 				return
 			}
 
 			client := office365.NewClientAuthenticated(&config.Credentials, config.Global.Identifier)
 			audits, err := client.Subscriptions.Audit(context.Background(), idArg)
 			if err != nil {
-				fmt.Printf("error getting audits: %s\n", err)
+				logger.Printf("error getting audits: %s\n", err)
 				return
 			}
 			for _, u := range audits {
 				userData, err := json.Marshal(u)
 				if err != nil {
-					fmt.Printf("error marshalling audits: %s\n", err)
+					logger.Printf("error marshalling audits: %s\n", err)
 					continue
 				}
-				fmt.Println(string(userData))
+				WriteOut(string(userData))
 			}
 		},
 	}

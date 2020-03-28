@@ -3,7 +3,6 @@ package cmd
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 
 	"github.com/devodev/go-office365/office365"
 	"github.com/spf13/cobra"
@@ -29,12 +28,12 @@ func newCommandFetch() *cobra.Command {
 
 			// validate args
 			if !office365.ContentTypeValid(ctArg) {
-				fmt.Println("ContentType invalid")
+				logger.Println("ContentType invalid")
 				return
 			}
 			ct, err := office365.GetContentType(ctArg)
 			if err != nil {
-				fmt.Println(err)
+				logger.Println(err)
 				return
 			}
 
@@ -48,7 +47,7 @@ func newCommandFetch() *cobra.Command {
 			// retrieve content
 			content, err := client.Subscriptions.Content(context.Background(), ct, startTime, endTime)
 			if err != nil {
-				fmt.Printf("error getting content: %s\n", err)
+				logger.Printf("error getting content: %s\n", err)
 				return
 			}
 
@@ -57,7 +56,7 @@ func newCommandFetch() *cobra.Command {
 			for _, c := range content {
 				audits, err := client.Subscriptions.Audit(context.Background(), c.ContentID)
 				if err != nil {
-					fmt.Printf("error getting audits: %s\n", err)
+					logger.Printf("error getting audits: %s\n", err)
 					continue
 				}
 				auditList = append(auditList, audits...)
@@ -67,10 +66,10 @@ func newCommandFetch() *cobra.Command {
 			for _, a := range auditList {
 				auditStr, err := json.Marshal(a)
 				if err != nil {
-					fmt.Printf("error marshalling audit: %s\n", err)
+					logger.Printf("error marshalling audit: %s\n", err)
 					continue
 				}
-				fmt.Println(string(auditStr))
+				WriteOut(string(auditStr))
 			}
 
 		},
