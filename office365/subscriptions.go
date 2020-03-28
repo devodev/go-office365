@@ -240,7 +240,8 @@ func (s *SubscriptionService) resourceGenerator(ctx context.Context, intervalMin
 				for _, sub := range subscriptions {
 					ct, err := GetContentType(sub.ContentType)
 					if err != nil {
-						fmt.Println(err)
+						resource.AddError(err)
+						out <- resource
 						continue
 					}
 					resource.SetRequest(ct, startTime, endTime)
