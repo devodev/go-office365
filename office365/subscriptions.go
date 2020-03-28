@@ -17,6 +17,8 @@ var (
 	RequestDateFormat          = "2006-01-02"
 	RequestDatetimeFormat      = "2006-01-02T15:04"
 	RequestDatetimeLargeFormat = "2006-01-02T15:04:05"
+
+	CreatedDatetimeFormat = "2006-01-02T15:04:05.999Z"
 )
 
 // error definition.
@@ -199,21 +201,31 @@ func (s *SubscriptionService) Audit(ctx context.Context, contentID string) ([]Au
 }
 
 // Watch .
-func (s *SubscriptionService) Watch(ctx context.Context, fetcherCount int, intervalMinutes int) <-chan Resource {
+func (s *SubscriptionService) Watch(ctx context.Context, fetcherCount int, intervalSeconds int) <-chan Resource {
 	generatedChan := make(chan Resource)
 	resultChan := make(chan Resource)
 
 	for i := 0; i < fetcherCount; i++ {
 		go s.fetcher(ctx, generatedChan, resultChan)
 	}
-	go s.resourceGenerator(ctx, intervalMinutes, generatedChan)
+	go s.resourceGenerator(ctx, intervalSeconds, generatedChan)
+
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				close(resultChan)
+				return
+			default:
+			}
+		}
+	}()
 
 	return resultChan
 }
 
-func (s *SubscriptionService) resourceGenerator(ctx context.Context, intervalMinutes int, out chan Resource) {
-	// TODO: change time.Second into time.Minute. This is to ease testing.
-	tickerDur := time.Duration(intervalMinutes) * time.Second
+func (s *SubscriptionService) resourceGenerator(ctx context.Context, intervalSeconds int, out chan Resource) {
+	tickerDur := time.Duration(intervalSeconds) * time.Second
 	ticker := time.NewTicker(tickerDur)
 	defer ticker.Stop()
 
@@ -233,8 +245,7 @@ func (s *SubscriptionService) resourceGenerator(ctx context.Context, intervalMin
 					return
 				}
 
-				// TODO: remove time.Minute
-				startTime := t.Add(-(tickerDur + time.Minute))
+				startTime := t.Add(-(tickerDur))
 				endTime := t
 
 				for _, sub := range subscriptions {
@@ -253,24 +264,40 @@ func (s *SubscriptionService) resourceGenerator(ctx context.Context, intervalMin
 }
 
 func (s *SubscriptionService) fetcher(ctx context.Context, in <-chan Resource, out chan Resource) {
-	defer close(out)
 	for r := range in {
-		content, err := s.client.Subscriptions.Content(ctx, r.Request.ContentType, r.Request.StartTime, r.Request.EndTime)
+		start := r.Request.EndTime.Add(-(time.Minute))
+		end := r.Request.EndTime
+
+		content, err := s.client.Subscriptions.Content(ctx, r.Request.ContentType, start, end)
 		if err != nil {
 			r.AddError(err)
 			out <- r
 			continue
 		}
 
+		fmt.Printf("DEBUG: [%s] fetcher.start: %s\n", r.Request.ContentType, start.String())
+		fmt.Printf("DEBUG: [%s] fetcher.end: %s\n", r.Request.ContentType, end.String())
+
+		fmt.Printf("DEBUG: [%s] request.startTime: %s\n", r.Request.ContentType, r.Request.StartTime.String())
+		fmt.Printf("DEBUG: [%s] request.EndTime: %s\n", r.Request.ContentType, r.Request.EndTime.String())
+
 		var records []AuditRecord
 		for _, c := range content {
-			audits, err := s.client.Subscriptions.Audit(ctx, c.ContentID)
+			created, err := time.ParseInLocation(CreatedDatetimeFormat, c.ContentCreated, time.Local)
 			if err != nil {
 				r.AddError(err)
-				out <- r
 				continue
 			}
-			records = append(records, audits...)
+			fmt.Printf("DEBUG: [%s] created: %s\n", r.Request.ContentType, created.String())
+
+			if created.After(r.Request.StartTime) && created.Before(r.Request.EndTime) {
+				audits, err := s.client.Subscriptions.Audit(ctx, c.ContentID)
+				if err != nil {
+					r.AddError(err)
+					continue
+				}
+				records = append(records, audits...)
+			}
 		}
 		r.SetResponse(records)
 		out <- r
