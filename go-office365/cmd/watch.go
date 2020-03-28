@@ -49,7 +49,10 @@ func newCommandWatch() *cobra.Command {
 				}
 			}()
 
-			resultChan, err := client.Subscriptions.Watch(ctx, watchConfig.Global.FetcherCount, watchConfig.Global.TickerIntervalSeconds)
+			resultChan, err := client.Subscriptions.Watch(ctx,
+				watchConfig.Global.FetcherCount,
+				watchConfig.Global.FetcherLookBehindMinutes,
+				watchConfig.Global.TickerIntervalSeconds)
 			if err != nil {
 				fmt.Printf("error occured calling watch: %s\n", err)
 				return
@@ -79,9 +82,10 @@ func printer(in <-chan office365.Resource) {
 // WatchConfig .
 type WatchConfig struct {
 	Global struct {
-		TickerIntervalSeconds int
-		FetcherCount          int
-		PubIdentifier         string
+		TickerIntervalSeconds    int
+		FetcherCount             int
+		FetcherLookBehindMinutes int
+		PubIdentifier            string
 	}
 }
 

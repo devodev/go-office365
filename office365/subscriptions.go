@@ -203,7 +203,7 @@ func (s *SubscriptionService) Audit(ctx context.Context, contentID string) ([]Au
 // Watch is used as a dynamic way for fetching events.
 // It will poll the current subscriptions for available content
 // at regular intervals and returns a channel for consuming returned events.
-func (s *SubscriptionService) Watch(ctx context.Context, fetcherCount int, intervalSeconds int) (<-chan Resource, error) {
+func (s *SubscriptionService) Watch(ctx context.Context, fetcherCount int, fetcherLookBehindMinutes int, intervalSeconds int) (<-chan Resource, error) {
 	if intervalSeconds <= 0 {
 		return nil, fmt.Errorf("intervalSeconds must be greater than 0")
 	}
@@ -215,7 +215,7 @@ func (s *SubscriptionService) Watch(ctx context.Context, fetcherCount int, inter
 	resultChan := make(chan Resource)
 
 	for i := 0; i < fetcherCount; i++ {
-		go s.fetcher(ctx, generatedChan, resultChan)
+		go s.fetcher(ctx, fetcherLookBehindMinutes, generatedChan, resultChan)
 	}
 	go s.resourceGenerator(ctx, intervalSeconds, generatedChan)
 
@@ -272,9 +272,10 @@ func (s *SubscriptionService) resourceGenerator(ctx context.Context, intervalSec
 	}
 }
 
-func (s *SubscriptionService) fetcher(ctx context.Context, in <-chan Resource, out chan Resource) {
+func (s *SubscriptionService) fetcher(ctx context.Context, fetcherLookBehindMinutes int, in <-chan Resource, out chan Resource) {
 	for r := range in {
-		start := r.Request.EndTime.Add(-(time.Minute))
+		fetcherLookBehind := time.Duration(fetcherLookBehindMinutes) * time.Minute
+		start := r.Request.EndTime.Add(-(fetcherLookBehind))
 		end := r.Request.EndTime
 
 		content, err := s.client.Subscriptions.Content(ctx, r.Request.ContentType, start, end)
