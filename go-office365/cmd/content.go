@@ -3,10 +3,9 @@ package cmd
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"time"
 
-	"github.com/devodev/go-graph/office365"
+	"github.com/devodev/go-office365/office365"
 	"github.com/spf13/cobra"
 )
 
@@ -16,9 +15,8 @@ func init() {
 
 func newCommandContent() *cobra.Command {
 	var (
-		pubIdentifier string
-		startTime     string
-		endTime       string
+		startTime string
+		endTime   string
 	)
 
 	cmd := &cobra.Command{
@@ -31,39 +29,35 @@ func newCommandContent() *cobra.Command {
 
 			// validate args
 			if !office365.ContentTypeValid(ctArg) {
-				fmt.Println("ContentType invalid")
+				logger.Println("ContentType invalid")
 				return
 			}
 			ct, err := office365.GetContentType(ctArg)
 			if err != nil {
-				fmt.Println(err)
+				logger.Println(err)
 				return
 			}
 
 			// parse optional args
-			if pubIdentifier == "" {
-				pubIdentifier = config.Credentials.ClientID
-			}
 			startTime := parseDate(startTime)
 			endTime := parseDate(endTime)
 
-			client := office365.NewClientAuthenticated(&config.Credentials)
-			content, err := client.Subscriptions.Content(context.Background(), pubIdentifier, ct, startTime, endTime)
+			client := office365.NewClientAuthenticated(&config.Credentials, config.Global.Identifier)
+			content, err := client.Subscriptions.Content(context.Background(), ct, startTime, endTime)
 			if err != nil {
-				fmt.Printf("error getting content: %s\n", err)
+				logger.Printf("error getting content: %s\n", err)
 				return
 			}
 			for _, u := range content {
 				userData, err := json.Marshal(u)
 				if err != nil {
-					fmt.Printf("error marshalling content: %s\n", err)
+					logger.Printf("error marshalling content: %s\n", err)
 					continue
 				}
-				fmt.Println(string(userData))
+				WriteOut(string(userData))
 			}
 		},
 	}
-	cmd.Flags().StringVar(&pubIdentifier, "identifier", "", "Publisher Identifier")
 	cmd.Flags().StringVar(&startTime, "start", "", "Start time")
 	cmd.Flags().StringVar(&endTime, "end", "", "End time")
 

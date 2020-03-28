@@ -19,7 +19,7 @@ func stubClient() (*Client, *http.ServeMux, func()) {
 	mux := http.NewServeMux()
 	server := httptest.NewServer(mux)
 
-	client := NewClient(nil, "test-tenandID")
+	client := NewClient(nil, "test-tenandID", "")
 	url, _ := url.Parse(server.URL + "/")
 	client.BaseURL = url
 
@@ -111,7 +111,7 @@ func TestList(t *testing.T) {
         ]`)
 	})
 
-	subscriptions, err := client.Subscriptions.List(context.Background(), "")
+	subscriptions, err := client.Subscriptions.List(context.Background())
 	if err != nil {
 		t.Errorf("error occured running Subscriptions.List: %v", err)
 	}
@@ -200,7 +200,7 @@ func TestStart(t *testing.T) {
 
 	for idx, c := range cases {
 		t.Run(fmt.Sprintf("%d.", idx), func(t *testing.T) {
-			subscriptions, err := client.Subscriptions.Start(context.Background(), "", &c.ContentType, c.Request)
+			subscriptions, err := client.Subscriptions.Start(context.Background(), &c.ContentType, c.Request)
 			if err != nil {
 				t.Errorf("error occured running Subscriptions.Start: %v", err)
 			}
@@ -228,7 +228,7 @@ func TestStop(t *testing.T) {
 
 	for idx, c := range cases {
 		t.Run(fmt.Sprintf("%d.", idx), func(t *testing.T) {
-			err := client.Subscriptions.Stop(context.Background(), "", &c.ContentType)
+			err := client.Subscriptions.Stop(context.Background(), &c.ContentType)
 			if err != nil {
 				t.Errorf("error occured running Subscriptions.Stop: %v", err)
 			}
@@ -461,7 +461,7 @@ func TestContent(t *testing.T) {
 
 	for idx, c := range cases {
 		t.Run(fmt.Sprintf("%d.", idx+1), func(t *testing.T) {
-			contents, err := client.Subscriptions.Content(context.Background(), "", &c.ContentType, c.StartTime, c.EndTime)
+			contents, err := client.Subscriptions.Content(context.Background(), &c.ContentType, c.StartTime, c.EndTime)
 			testError(t, c.Want, c.WantError, err)
 			if len(contents) == 0 && len(c.Want) == 0 {
 				return

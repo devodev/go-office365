@@ -2,9 +2,10 @@ package cmd
 
 import (
 	"fmt"
+	"log"
 	"os"
 
-	"github.com/devodev/go-graph/office365"
+	"github.com/devodev/go-office365/office365"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -12,6 +13,10 @@ import (
 var (
 	cfgFile string
 	config  Config
+	logger  *log.Logger
+
+	loggerOutput  = os.Stderr
+	defaultOutput = os.Stdout
 
 	rootCmd = &cobra.Command{
 		Use:     "go-office365",
@@ -26,8 +31,13 @@ func Execute() error {
 	return rootCmd.Execute()
 }
 
+// WriteOut .
+func WriteOut(line string) {
+	fmt.Fprintln(defaultOutput, line)
+}
+
 func init() {
-	cobra.OnInitialize(initConfig)
+	cobra.OnInitialize(initLogging, initConfig)
 
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file")
 }
@@ -38,8 +48,7 @@ func initConfig() {
 	} else {
 		wd, err := os.Getwd()
 		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
+			logger.Fatalln(err)
 		}
 
 		viper.AddConfigPath(wd)
@@ -51,19 +60,24 @@ func initConfig() {
 
 	err := viper.ReadInConfig()
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		logger.Fatalln(err)
 	}
-	fmt.Println("Using config file:", viper.ConfigFileUsed())
+	logger.Println("Using config file:", viper.ConfigFileUsed())
 
-	if err := viper.Unmarshal(&config); err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+	if err := viper.UnmarshalExact(&config); err != nil {
+		logger.Fatalln(err)
 	}
+}
+
+func initLogging() {
+	logger = log.New(loggerOutput, "[go-office365] ", log.Flags())
 }
 
 // Config stores credentials and application
 // specific attributes.
 type Config struct {
+	Global struct {
+		Identifier string
+	}
 	Credentials office365.Credentials
 }
