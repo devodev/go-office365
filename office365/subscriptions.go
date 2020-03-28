@@ -200,7 +200,6 @@ func (s *SubscriptionService) Audit(ctx context.Context, contentID string) ([]Au
 
 // Watch .
 func (s *SubscriptionService) Watch(ctx context.Context, fetcherCount int, intervalMinutes int) <-chan Resource {
-	// Watch .
 	generatedChan := make(chan Resource)
 	resultChan := make(chan Resource)
 
