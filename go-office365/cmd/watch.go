@@ -64,7 +64,7 @@ func printer(in <-chan office365.Resource) {
 				fmt.Printf("error marshalling audit: %s\n", err)
 				continue
 			}
-			fmt.Println(string(auditStr))
+			fmt.Printf("[%s] %s\n", r.Request.ContentType, string(auditStr))
 		}
 	}
 }
