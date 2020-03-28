@@ -203,7 +203,19 @@ func (s *SubscriptionService) Audit(ctx context.Context, contentID string) ([]Au
 // Watch is used as a dynamic way for fetching events.
 // It will poll the current subscriptions for available content
 // at regular intervals and returns a channel for consuming returned events.
-func (s *SubscriptionService) Watch(ctx context.Context, fetcherCount int, fetcherLookBehindMinutes int, intervalSeconds int) (<-chan Resource, error) {
+func (s *SubscriptionService) Watch(ctx context.Context, fetcherCount int, lookBehindMinutes int, intervalSeconds int) (<-chan Resource, error) {
+	if fetcherCount <= 0 {
+		return nil, fmt.Errorf("fetcherCount must be greater than 0")
+	}
+
+	if lookBehindMinutes <= 0 {
+		return nil, fmt.Errorf("lookBehindMinutes must be greater than 0")
+	}
+	lookBehindDur := time.Duration(lookBehindMinutes) * time.Minute
+	if lookBehindDur > 24*time.Hour {
+		return nil, fmt.Errorf("lookBehindMinutes must be less than 24 hours")
+	}
+
 	if intervalSeconds <= 0 {
 		return nil, fmt.Errorf("intervalSeconds must be greater than 0")
 	}
@@ -211,11 +223,12 @@ func (s *SubscriptionService) Watch(ctx context.Context, fetcherCount int, fetch
 	if intervalDur > 24*time.Hour {
 		return nil, fmt.Errorf("intervalSeconds must be less than 24 hours")
 	}
+
 	generatedChan := make(chan Resource)
 	resultChan := make(chan Resource)
 
 	for i := 0; i < fetcherCount; i++ {
-		go s.fetcher(ctx, fetcherLookBehindMinutes, generatedChan, resultChan)
+		go s.fetcher(ctx, lookBehindMinutes, generatedChan, resultChan)
 	}
 	go s.resourceGenerator(ctx, intervalSeconds, generatedChan)
 
@@ -285,11 +298,11 @@ func (s *SubscriptionService) fetcher(ctx context.Context, lookBehindMinutes int
 			continue
 		}
 
-		fmt.Printf("DEBUG: [%s] fetcher.start: %s\n", r.Request.ContentType, start.String())
-		fmt.Printf("DEBUG: [%s] fetcher.end: %s\n", r.Request.ContentType, end.String())
+		//fmt.Printf("DEBUG: [%s] fetcher.start: %s\n", r.Request.ContentType, start.String())
+		//fmt.Printf("DEBUG: [%s] fetcher.end: %s\n", r.Request.ContentType, end.String())
 
-		fmt.Printf("DEBUG: [%s] request.startTime: %s\n", r.Request.ContentType, r.Request.StartTime.String())
-		fmt.Printf("DEBUG: [%s] request.EndTime: %s\n", r.Request.ContentType, r.Request.EndTime.String())
+		//fmt.Printf("DEBUG: [%s] request.startTime: %s\n", r.Request.ContentType, r.Request.StartTime.String())
+		//fmt.Printf("DEBUG: [%s] request.EndTime: %s\n", r.Request.ContentType, r.Request.EndTime.String())
 
 		var records []AuditRecord
 		for _, c := range content {
@@ -298,7 +311,7 @@ func (s *SubscriptionService) fetcher(ctx context.Context, lookBehindMinutes int
 				r.AddError(err)
 				continue
 			}
-			fmt.Printf("DEBUG: [%s] created: %s\n", r.Request.ContentType, created.String())
+			//fmt.Printf("DEBUG: [%s] created: %s\n", r.Request.ContentType, created.String())
 
 			createdAfterOrEqual := created.After(r.Request.StartTime) || created.Equal(r.Request.StartTime)
 			if createdAfterOrEqual && created.Before(r.Request.EndTime) {
