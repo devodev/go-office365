@@ -300,7 +300,8 @@ func (s *SubscriptionService) fetcher(ctx context.Context, lookBehindMinutes int
 			}
 			fmt.Printf("DEBUG: [%s] created: %s\n", r.Request.ContentType, created.String())
 
-			if created.After(r.Request.StartTime) && created.Before(r.Request.EndTime) {
+			createdAfterOrEqual := created.After(r.Request.StartTime) || created.Equal(r.Request.StartTime)
+			if createdAfterOrEqual && created.Before(r.Request.EndTime) {
 				audits, err := s.client.Subscriptions.Audit(ctx, c.ContentID)
 				if err != nil {
 					r.AddError(err)
