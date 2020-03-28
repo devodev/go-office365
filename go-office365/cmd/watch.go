@@ -63,7 +63,7 @@ func newCommandWatch() *cobra.Command {
 func printer(in <-chan office365.Resource) {
 	for r := range in {
 		for idx, e := range r.Errors {
-			WriteOut(fmt.Sprintf("[%s] Error%d: %s\n", r.Request.ContentType, idx, e.Error()))
+			WriteOut(fmt.Sprintf("[%s] Error%d: %s", r.Request.ContentType, idx, e.Error()))
 		}
 		for _, a := range r.Response.Records {
 			auditStr, err := json.Marshal(a)
@@ -71,7 +71,7 @@ func printer(in <-chan office365.Resource) {
 				logger.Printf("error marshalling audit: %s\n", err)
 				continue
 			}
-			WriteOut(fmt.Sprintf("[%s] %s\n", r.Request.ContentType, string(auditStr)))
+			WriteOut(fmt.Sprintf("[%s] %s", r.Request.ContentType, string(auditStr)))
 		}
 	}
 }
