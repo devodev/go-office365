@@ -255,7 +255,7 @@ func (s *SubscriptionService) resourceGenerator(ctx context.Context, intervalMin
 func (s *SubscriptionService) fetcher(ctx context.Context, in <-chan Resource, out chan Resource) {
 	defer close(out)
 	for r := range in {
-		content, err := s.client.Subscriptions.Content(ctx, r.Request.contentType, r.Request.startTime, r.Request.endTime)
+		content, err := s.client.Subscriptions.Content(ctx, r.Request.ContentType, r.Request.StartTime, r.Request.EndTime)
 		if err != nil {
 			r.AddError(err)
 			out <- r
@@ -292,9 +292,9 @@ func (r *Resource) AddError(err error) {
 // SetRequest .
 func (r *Resource) SetRequest(ct *ContentType, startTime time.Time, endTime time.Time) {
 	r.Request = ResourceRequest{
-		contentType: ct,
-		startTime:   startTime,
-		endTime:     endTime,
+		ContentType: ct,
+		StartTime:   startTime,
+		EndTime:     endTime,
 	}
 }
 
@@ -305,9 +305,9 @@ func (r *Resource) SetResponse(records []AuditRecord) {
 
 // ResourceRequest .
 type ResourceRequest struct {
-	contentType *ContentType
-	startTime   time.Time
-	endTime     time.Time
+	ContentType *ContentType
+	StartTime   time.Time
+	EndTime     time.Time
 }
 
 // ResourceResponse .
