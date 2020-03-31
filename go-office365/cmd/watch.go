@@ -8,7 +8,6 @@ import (
 
 	"github.com/devodev/go-office365/office365"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 func init() {
@@ -16,19 +15,19 @@ func init() {
 }
 
 func newCommandWatch() *cobra.Command {
+	var (
+		tickerIntervalSeconds    int
+		fetcherCount             int
+		fetcherIntervalSeconds   int
+		fetcherLookBehindMinutes int
+		pubIdentifier            string
+	)
+
 	cmd := &cobra.Command{
-		Use:   "watch [config]",
+		Use:   "watch",
 		Short: "Fetch audit events at regular intervals.",
-		Args:  cobra.ExactArgs(1),
+		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
-			confArg := args[0]
-
-			watchConfig, err := loadConfig(confArg)
-			if err != nil {
-				logger.Printf("error occured loading config file: %s\n", err)
-				return
-			}
-
 			client := office365.NewClientAuthenticated(&config.Credentials, config.Global.Identifier)
 
 			ctx, cancel := context.WithCancel(context.Background())
@@ -45,10 +44,10 @@ func newCommandWatch() *cobra.Command {
 			}()
 
 			watcherConf := office365.SubscriptionWatcherConfig{
-				FetcherCount:           watchConfig.Global.FetcherCount,
-				LookBehindMinutes:      watchConfig.Global.FetcherLookBehindMinutes,
-				FetcherIntervalSeconds: watchConfig.Global.FetcherIntervalSeconds,
-				TickerIntervalSeconds:  watchConfig.Global.TickerIntervalSeconds,
+				FetcherCount:           fetcherCount,
+				LookBehindMinutes:      fetcherLookBehindMinutes,
+				FetcherIntervalSeconds: fetcherIntervalSeconds,
+				TickerIntervalSeconds:  tickerIntervalSeconds,
 			}
 
 			resultChan, err := client.Subscription.Watch(ctx, watcherConf)
@@ -61,33 +60,13 @@ func newCommandWatch() *cobra.Command {
 			printer.Handle(resultChan)
 		},
 	}
+	cmd.Flags().IntVar(&tickerIntervalSeconds, "ticker-interval", 5, "TickerIntervalSeconds")
+	cmd.Flags().IntVar(&fetcherCount, "fetcher-count", 10, "FetcherCount")
+	cmd.Flags().IntVar(&fetcherIntervalSeconds, "fetcher-interval", 60, "FetcherIntervalSeconds")
+	cmd.Flags().IntVar(&fetcherLookBehindMinutes, "fetcher-lookbehind", 1, "FetcherLookBehindMinutes")
+	cmd.Flags().StringVar(&pubIdentifier, "identifier", "", "Publisher Identifier")
+
 	return cmd
-}
-
-// WatchConfig .
-type WatchConfig struct {
-	Global struct {
-		TickerIntervalSeconds    int
-		FetcherCount             int
-		FetcherIntervalSeconds   int
-		FetcherLookBehindMinutes int
-		PubIdentifier            string
-	}
-}
-
-func loadConfig(confPath string) (*WatchConfig, error) {
-	vip := viper.New()
-	vip.SetConfigFile(confPath)
-
-	if err := vip.ReadInConfig(); err != nil {
-		return nil, err
-	}
-
-	var config WatchConfig
-	if err := vip.UnmarshalExact(&config); err != nil {
-		return nil, err
-	}
-	return &config, nil
 }
 
 func getSigChan() chan os.Signal {
