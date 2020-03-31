@@ -18,7 +18,6 @@ func newCommandWatch() *cobra.Command {
 	var (
 		tickerIntervalSeconds    int
 		fetcherCount             int
-		fetcherIntervalSeconds   int
 		fetcherLookBehindMinutes int
 	)
 
@@ -43,10 +42,9 @@ func newCommandWatch() *cobra.Command {
 			}()
 
 			watcherConf := office365.SubscriptionWatcherConfig{
-				FetcherCount:           fetcherCount,
-				LookBehindMinutes:      fetcherLookBehindMinutes,
-				FetcherIntervalSeconds: fetcherIntervalSeconds,
-				TickerIntervalSeconds:  tickerIntervalSeconds,
+				FetcherCount:          fetcherCount,
+				LookBehindMinutes:     fetcherLookBehindMinutes,
+				TickerIntervalSeconds: tickerIntervalSeconds,
 			}
 
 			resultChan, err := client.Subscription.Watch(ctx, watcherConf)
@@ -61,7 +59,6 @@ func newCommandWatch() *cobra.Command {
 	}
 	cmd.Flags().IntVar(&tickerIntervalSeconds, "ticker-interval", 5, "TickerIntervalSeconds")
 	cmd.Flags().IntVar(&fetcherCount, "fetcher-count", 5, "FetcherCount")
-	cmd.Flags().IntVar(&fetcherIntervalSeconds, "fetcher-interval", 5, "FetcherIntervalSeconds")
 	cmd.Flags().IntVar(&fetcherLookBehindMinutes, "fetcher-lookbehind", 1, "FetcherLookBehindMinutes")
 
 	return cmd
