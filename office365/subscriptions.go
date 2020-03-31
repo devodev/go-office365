@@ -208,20 +208,28 @@ func (s *SubscriptionService) Watch(ctx context.Context, fetcherCount int, lookB
 		return nil, fmt.Errorf("fetcherCount must be greater than 0")
 	}
 
-	if lookBehindMinutes <= 0 {
+	lookBehindDur := time.Duration(lookBehindMinutes) * time.Minute
+	if lookBehindDur <= 0 {
 		return nil, fmt.Errorf("lookBehindMinutes must be greater than 0")
 	}
-	lookBehindDur := time.Duration(lookBehindMinutes) * time.Minute
 	if lookBehindDur > 24*time.Hour {
 		return nil, fmt.Errorf("lookBehindMinutes must be less than 24 hours")
 	}
 
-	if tickerIntervalSeconds <= 0 {
-		return nil, fmt.Errorf("intervalSeconds must be greater than 0")
+	fetcherIntervalDur := time.Duration(fetcherIntervalSeconds) * time.Second
+	if fetcherIntervalDur <= 0 {
+		return nil, fmt.Errorf("fetcherIntervalSeconds must be greater than 0")
 	}
-	intervalDur := time.Duration(tickerIntervalSeconds) * time.Second
-	if intervalDur > 24*time.Hour {
-		return nil, fmt.Errorf("intervalSeconds must be less than 24 hours")
+	if fetcherIntervalDur > 24*time.Hour {
+		return nil, fmt.Errorf("fetcherIntervalSeconds must be less than 24 hours")
+	}
+
+	tickerIntervalDur := time.Duration(tickerIntervalSeconds) * time.Second
+	if tickerIntervalDur <= 0 {
+		return nil, fmt.Errorf("tickerIntervalSeconds must be greater than 0")
+	}
+	if tickerIntervalDur > 24*time.Hour {
+		return nil, fmt.Errorf("tickerIntervalSeconds must be less than 24 hours")
 	}
 
 	generatedChan := make(chan Resource)
