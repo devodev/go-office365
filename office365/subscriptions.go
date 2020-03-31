@@ -203,12 +203,49 @@ func (s *SubscriptionService) Audit(ctx context.Context, contentID string) ([]Au
 // Watch is used as a dynamic way for fetching events.
 // It will poll the current subscriptions for available content
 // at regular intervals and returns a channel for consuming returned events.
-func (s *SubscriptionService) Watch(ctx context.Context, fetcherCount int, lookBehindMinutes int, fetcherIntervalSeconds int, tickerIntervalSeconds int) (<-chan Resource, error) {
-	if fetcherCount <= 0 {
+func (s *SubscriptionService) Watch(ctx context.Context, conf SubscriptionWatcherConfig) (<-chan Resource, error) {
+	watcher, err := NewSubscriptionWatcher(s.client, conf)
+	if err != nil {
+		return nil, err
+	}
+
+	resourceChan := make(chan Resource)
+	watcher.Run(ctx, resourceChan)
+
+	return resourceChan, nil
+}
+
+// Watcher is an interface used by Watch for generating a stream of records.
+type Watcher interface {
+	Run(context.Context, chan Resource)
+}
+
+// SubscriptionWatcher implements the Watcher interface.
+// It fecthes current subscriptions, then queries content available for a given interval
+// and proceed to query audit records.
+type SubscriptionWatcher struct {
+	client *Client
+	config SubscriptionWatcherConfig
+
+	queue chan Resource
+}
+
+// SubscriptionWatcherConfig .
+type SubscriptionWatcherConfig struct {
+	FetcherCount           int
+	LookBehindMinutes      int
+	FetcherIntervalSeconds int
+	TickerIntervalSeconds  int
+}
+
+// NewSubscriptionWatcher returns a new watcher that uses the provided client
+// for querying the API.
+func NewSubscriptionWatcher(client *Client, conf SubscriptionWatcherConfig) (*SubscriptionWatcher, error) {
+	if conf.FetcherCount <= 0 {
 		return nil, fmt.Errorf("fetcherCount must be greater than 0")
 	}
 
-	lookBehindDur := time.Duration(lookBehindMinutes) * time.Minute
+	lookBehindDur := time.Duration(conf.LookBehindMinutes) * time.Minute
 	if lookBehindDur <= 0 {
 		return nil, fmt.Errorf("lookBehindMinutes must be greater than 0")
 	}
@@ -216,7 +253,7 @@ func (s *SubscriptionService) Watch(ctx context.Context, fetcherCount int, lookB
 		return nil, fmt.Errorf("lookBehindMinutes must be less than 24 hours")
 	}
 
-	fetcherIntervalDur := time.Duration(fetcherIntervalSeconds) * time.Second
+	fetcherIntervalDur := time.Duration(conf.FetcherIntervalSeconds) * time.Second
 	if fetcherIntervalDur <= 0 {
 		return nil, fmt.Errorf("fetcherIntervalSeconds must be greater than 0")
 	}
@@ -224,7 +261,7 @@ func (s *SubscriptionService) Watch(ctx context.Context, fetcherCount int, lookB
 		return nil, fmt.Errorf("fetcherIntervalSeconds must be less than 24 hours")
 	}
 
-	tickerIntervalDur := time.Duration(tickerIntervalSeconds) * time.Second
+	tickerIntervalDur := time.Duration(conf.TickerIntervalSeconds) * time.Second
 	if tickerIntervalDur <= 0 {
 		return nil, fmt.Errorf("tickerIntervalSeconds must be greater than 0")
 	}
@@ -232,38 +269,45 @@ func (s *SubscriptionService) Watch(ctx context.Context, fetcherCount int, lookB
 		return nil, fmt.Errorf("tickerIntervalSeconds must be less than 24 hours")
 	}
 
-	generatedChan := make(chan Resource)
-	resultChan := make(chan Resource)
+	watcher := &SubscriptionWatcher{
+		client: client,
+		config: conf,
 
-	for i := 0; i < fetcherCount; i++ {
-		go s.fetcher(ctx, lookBehindMinutes, generatedChan, resultChan)
+		queue: make(chan Resource),
 	}
-	go s.resourceGenerator(ctx, fetcherIntervalSeconds, tickerIntervalSeconds, generatedChan)
+	return watcher, nil
+}
+
+// Run implements the Watcher interface.
+func (s SubscriptionWatcher) Run(ctx context.Context, out chan Resource) {
+	for i := 0; i < s.config.FetcherCount; i++ {
+		go s.fetcher(ctx, out)
+	}
+	go s.generator(ctx)
 
 	go func() {
 		for {
 			select {
 			case <-ctx.Done():
-				close(resultChan)
+				close(out)
 				return
 			default:
 			}
 		}
 	}()
-
-	return resultChan, nil
 }
 
-func (s *SubscriptionService) resourceGenerator(ctx context.Context, fetcherIntervalSeconds int, tickerIntervalSeconds int, out chan Resource) {
-	fetcherDur := time.Duration(fetcherIntervalSeconds) * time.Second
-	tickerDur := time.Duration(tickerIntervalSeconds) * time.Second
+// Generator .
+func (s SubscriptionWatcher) generator(ctx context.Context) {
+	fetcherDur := time.Duration(s.config.FetcherIntervalSeconds) * time.Second
+	tickerDur := time.Duration(s.config.TickerIntervalSeconds) * time.Second
 	ticker := time.NewTicker(tickerDur)
 	defer ticker.Stop()
 
 	for {
 		select {
 		case <-ctx.Done():
-			close(out)
+			close(s.queue)
 			return
 		case t := <-ticker.C:
 			go func() {
@@ -272,7 +316,7 @@ func (s *SubscriptionService) resourceGenerator(ctx context.Context, fetcherInte
 				subscriptions, err := s.client.Subscriptions.List(ctx)
 				if err != nil {
 					resource.AddError(err)
-					out <- resource
+					s.queue <- resource
 					return
 				}
 
@@ -283,20 +327,21 @@ func (s *SubscriptionService) resourceGenerator(ctx context.Context, fetcherInte
 					ct, err := GetContentType(sub.ContentType)
 					if err != nil {
 						resource.AddError(err)
-						out <- resource
+						s.queue <- resource
 						continue
 					}
 					resource.SetRequest(ct, startTime, endTime)
-					out <- resource
+					s.queue <- resource
 				}
 			}()
 		}
 	}
 }
 
-func (s *SubscriptionService) fetcher(ctx context.Context, lookBehindMinutes int, in <-chan Resource, out chan Resource) {
-	for r := range in {
-		lookBehind := time.Duration(lookBehindMinutes) * time.Minute
+// Fetcher .
+func (s SubscriptionWatcher) fetcher(ctx context.Context, out chan Resource) {
+	for r := range s.queue {
+		lookBehind := time.Duration(s.config.LookBehindMinutes) * time.Minute
 		start := r.Request.EndTime.Add(-(lookBehind))
 		end := r.Request.EndTime
 

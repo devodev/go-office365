@@ -44,15 +44,19 @@ func newCommandWatch() *cobra.Command {
 				}
 			}()
 
-			resultChan, err := client.Subscriptions.Watch(ctx,
-				watchConfig.Global.FetcherCount,
-				watchConfig.Global.FetcherLookBehindMinutes,
-				watchConfig.Global.FetcherIntervalSeconds,
-				watchConfig.Global.TickerIntervalSeconds)
+			watcherConf := office365.SubscriptionWatcherConfig{
+				FetcherCount:           watchConfig.Global.FetcherCount,
+				LookBehindMinutes:      watchConfig.Global.FetcherLookBehindMinutes,
+				FetcherIntervalSeconds: watchConfig.Global.FetcherIntervalSeconds,
+				TickerIntervalSeconds:  watchConfig.Global.TickerIntervalSeconds,
+			}
+
+			resultChan, err := client.Subscriptions.Watch(ctx, watcherConf)
 			if err != nil {
 				logger.Printf("error occured calling watch: %s\n", err)
 				return
 			}
+
 			printer := office365.NewPrinter(defaultOutput)
 			printer.Handle(resultChan)
 		},
