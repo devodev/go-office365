@@ -203,58 +203,114 @@ func (s *SubscriptionService) Audit(ctx context.Context, contentID string) ([]Au
 // Watch is used as a dynamic way for fetching events.
 // It will poll the current subscriptions for available content
 // at regular intervals and returns a channel for consuming returned events.
-func (s *SubscriptionService) Watch(ctx context.Context, fetcherCount int, lookBehindMinutes int, intervalSeconds int) (<-chan Resource, error) {
-	if fetcherCount <= 0 {
+func (s *SubscriptionService) Watch(ctx context.Context, conf SubscriptionWatcherConfig) (<-chan Resource, error) {
+	watcher, err := NewSubscriptionWatcher(s.client, conf)
+	if err != nil {
+		return nil, err
+	}
+
+	resourceChan := watcher.Run(ctx)
+
+	return resourceChan, nil
+}
+
+// Watcher is an interface used by Watch for generating a stream of records.
+type Watcher interface {
+	Run(context.Context) chan Resource
+}
+
+// SubscriptionWatcher implements the Watcher interface.
+// It fecthes current subscriptions, then queries content available for a given interval
+// and proceed to query audit records.
+type SubscriptionWatcher struct {
+	client *Client
+	config SubscriptionWatcherConfig
+
+	queue chan Resource
+}
+
+// SubscriptionWatcherConfig .
+type SubscriptionWatcherConfig struct {
+	FetcherCount           int
+	LookBehindMinutes      int
+	FetcherIntervalSeconds int
+	TickerIntervalSeconds  int
+}
+
+// NewSubscriptionWatcher returns a new watcher that uses the provided client
+// for querying the API.
+func NewSubscriptionWatcher(client *Client, conf SubscriptionWatcherConfig) (*SubscriptionWatcher, error) {
+	if conf.FetcherCount <= 0 {
 		return nil, fmt.Errorf("fetcherCount must be greater than 0")
 	}
 
-	if lookBehindMinutes <= 0 {
+	lookBehindDur := time.Duration(conf.LookBehindMinutes) * time.Minute
+	if lookBehindDur <= 0 {
 		return nil, fmt.Errorf("lookBehindMinutes must be greater than 0")
 	}
-	lookBehindDur := time.Duration(lookBehindMinutes) * time.Minute
 	if lookBehindDur > 24*time.Hour {
 		return nil, fmt.Errorf("lookBehindMinutes must be less than 24 hours")
 	}
 
-	if intervalSeconds <= 0 {
-		return nil, fmt.Errorf("intervalSeconds must be greater than 0")
+	fetcherIntervalDur := time.Duration(conf.FetcherIntervalSeconds) * time.Second
+	if fetcherIntervalDur <= 0 {
+		return nil, fmt.Errorf("fetcherIntervalSeconds must be greater than 0")
 	}
-	intervalDur := time.Duration(intervalSeconds) * time.Second
-	if intervalDur > 24*time.Hour {
-		return nil, fmt.Errorf("intervalSeconds must be less than 24 hours")
+	if fetcherIntervalDur > 24*time.Hour {
+		return nil, fmt.Errorf("fetcherIntervalSeconds must be less than 24 hours")
 	}
 
-	generatedChan := make(chan Resource)
-	resultChan := make(chan Resource)
-
-	for i := 0; i < fetcherCount; i++ {
-		go s.fetcher(ctx, lookBehindMinutes, generatedChan, resultChan)
+	tickerIntervalDur := time.Duration(conf.TickerIntervalSeconds) * time.Second
+	if tickerIntervalDur <= 0 {
+		return nil, fmt.Errorf("tickerIntervalSeconds must be greater than 0")
 	}
-	go s.resourceGenerator(ctx, intervalSeconds, generatedChan)
+	if tickerIntervalDur > 24*time.Hour {
+		return nil, fmt.Errorf("tickerIntervalSeconds must be less than 24 hours")
+	}
+
+	watcher := &SubscriptionWatcher{
+		client: client,
+		config: conf,
+
+		queue: make(chan Resource),
+	}
+	return watcher, nil
+}
+
+// Run implements the Watcher interface.
+func (s SubscriptionWatcher) Run(ctx context.Context) chan Resource {
+	out := make(chan Resource)
+
+	for i := 0; i < s.config.FetcherCount; i++ {
+		go s.fetcher(ctx, out)
+	}
+	go s.generator(ctx)
 
 	go func() {
 		for {
 			select {
 			case <-ctx.Done():
-				close(resultChan)
+				close(out)
 				return
 			default:
 			}
 		}
 	}()
 
-	return resultChan, nil
+	return out
 }
 
-func (s *SubscriptionService) resourceGenerator(ctx context.Context, intervalSeconds int, out chan Resource) {
-	tickerDur := time.Duration(intervalSeconds) * time.Second
+// Generator .
+func (s SubscriptionWatcher) generator(ctx context.Context) {
+	fetcherDur := time.Duration(s.config.FetcherIntervalSeconds) * time.Second
+	tickerDur := time.Duration(s.config.TickerIntervalSeconds) * time.Second
 	ticker := time.NewTicker(tickerDur)
 	defer ticker.Stop()
 
 	for {
 		select {
 		case <-ctx.Done():
-			close(out)
+			close(s.queue)
 			return
 		case t := <-ticker.C:
 			go func() {
@@ -263,31 +319,32 @@ func (s *SubscriptionService) resourceGenerator(ctx context.Context, intervalSec
 				subscriptions, err := s.client.Subscriptions.List(ctx)
 				if err != nil {
 					resource.AddError(err)
-					out <- resource
+					s.queue <- resource
 					return
 				}
 
-				startTime := t.Add(-(tickerDur))
+				startTime := t.Add(-(fetcherDur))
 				endTime := t
 
 				for _, sub := range subscriptions {
 					ct, err := GetContentType(sub.ContentType)
 					if err != nil {
 						resource.AddError(err)
-						out <- resource
+						s.queue <- resource
 						continue
 					}
 					resource.SetRequest(ct, startTime, endTime)
-					out <- resource
+					s.queue <- resource
 				}
 			}()
 		}
 	}
 }
 
-func (s *SubscriptionService) fetcher(ctx context.Context, lookBehindMinutes int, in <-chan Resource, out chan Resource) {
-	for r := range in {
-		lookBehind := time.Duration(lookBehindMinutes) * time.Minute
+// Fetcher .
+func (s SubscriptionWatcher) fetcher(ctx context.Context, out chan Resource) {
+	for r := range s.queue {
+		lookBehind := time.Duration(s.config.LookBehindMinutes) * time.Minute
 		start := r.Request.EndTime.Add(-(lookBehind))
 		end := r.Request.EndTime
 
@@ -298,11 +355,11 @@ func (s *SubscriptionService) fetcher(ctx context.Context, lookBehindMinutes int
 			continue
 		}
 
-		//fmt.Printf("DEBUG: [%s] fetcher.start: %s\n", r.Request.ContentType, start.String())
-		//fmt.Printf("DEBUG: [%s] fetcher.end: %s\n", r.Request.ContentType, end.String())
+		fmt.Printf("DEBUG: [%s] fetcher.start: %s\n", r.Request.ContentType, start.String())
+		fmt.Printf("DEBUG: [%s] fetcher.end: %s\n", r.Request.ContentType, end.String())
 
-		//fmt.Printf("DEBUG: [%s] request.startTime: %s\n", r.Request.ContentType, r.Request.StartTime.String())
-		//fmt.Printf("DEBUG: [%s] request.EndTime: %s\n", r.Request.ContentType, r.Request.EndTime.String())
+		fmt.Printf("DEBUG: [%s] request.startTime: %s\n", r.Request.ContentType, r.Request.StartTime.String())
+		fmt.Printf("DEBUG: [%s] request.EndTime: %s\n", r.Request.ContentType, r.Request.EndTime.String())
 
 		var records []AuditRecord
 		for _, c := range content {
@@ -311,7 +368,7 @@ func (s *SubscriptionService) fetcher(ctx context.Context, lookBehindMinutes int
 				r.AddError(err)
 				continue
 			}
-			//fmt.Printf("DEBUG: [%s] created: %s\n", r.Request.ContentType, created.String())
+			fmt.Printf("DEBUG: [%s] created: %s\n", r.Request.ContentType, created.String())
 
 			createdAfterOrEqual := created.After(r.Request.StartTime) || created.Equal(r.Request.StartTime)
 			if createdAfterOrEqual && created.Before(r.Request.EndTime) {
@@ -364,6 +421,42 @@ type ResourceRequest struct {
 // ResourceResponse .
 type ResourceResponse struct {
 	Records []AuditRecord
+}
+
+// ResourceHandler is an interface for handling streamed resources.
+type ResourceHandler interface {
+	Handle(<-chan Resource)
+}
+
+// Printer implements the ResourceHandler interface.
+// It prints a human readable formatted resource on the
+// provided writer.
+type Printer struct {
+	writer io.Writer
+}
+
+// NewPrinter returns a printer using the provided writer.
+func NewPrinter(w io.Writer) *Printer {
+	return &Printer{w}
+}
+
+// Handle .
+func (h Printer) Handle(in <-chan Resource) {
+	for r := range in {
+		for idx, e := range r.Errors {
+			fmt.Fprintf(h.writer, "[%s] Error%d: %s", r.Request.ContentType, idx, e.Error())
+		}
+		for _, a := range r.Response.Records {
+			auditStr, err := json.Marshal(a)
+			if err != nil {
+				fmt.Fprintf(h.writer, "error marshalling audit: %s\n", err)
+				continue
+			}
+			var out bytes.Buffer
+			json.Indent(&out, auditStr, "", "\t")
+			fmt.Fprintf(h.writer, "[%s]\n%s\n", r.Request.ContentType, out.String())
+		}
+	}
 }
 
 // QueryParams .
