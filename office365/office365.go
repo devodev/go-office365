@@ -176,9 +176,9 @@ func (c *Client) do(ctx context.Context, req *http.Request, out interface{}) (*h
 
 // Subscription represents a response.
 type Subscription struct {
-	ContentType string  `json:"contentType"`
-	Status      string  `json:"status"`
-	Webhook     Webhook `json:"webhook"`
+	ContentType string   `json:"contentType"`
+	Status      string   `json:"status"`
+	Webhook     *Webhook `json:"webhook"`
 }
 
 // Webhook represents both a response and a request payload.

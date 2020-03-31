@@ -35,7 +35,7 @@ func TestList(t *testing.T) {
 		Subscription{
 			ContentType: "test",
 			Status:      "test",
-			Webhook:     Webhook{},
+			Webhook:     nil,
 		},
 	}
 	testDeep(t, subscriptions, want)
@@ -68,7 +68,7 @@ func TestStart(t *testing.T) {
 			Status:      "enabled",
 		}
 		if webhook != nil {
-			response.Webhook = Webhook{
+			response.Webhook = &Webhook{
 				Status:     "enabled",
 				Address:    webhook.Address,
 				AuthID:     webhook.AuthID,
@@ -94,7 +94,7 @@ func TestStart(t *testing.T) {
 			Want: &Subscription{
 				ContentType: AuditAzureActiveDirectory.String(),
 				Status:      "enabled",
-				Webhook: Webhook{
+				Webhook: &Webhook{
 					Status:     "enabled",
 					Address:    "test-address",
 					AuthID:     "test-authid",
@@ -108,7 +108,7 @@ func TestStart(t *testing.T) {
 			Want: &Subscription{
 				ContentType: AuditAzureActiveDirectory.String(),
 				Status:      "enabled",
-				Webhook:     Webhook{},
+				Webhook:     nil,
 			},
 		},
 	}
