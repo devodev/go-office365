@@ -28,7 +28,7 @@ func newCommandAudit() *cobra.Command {
 			}
 
 			client := office365.NewClientAuthenticated(&config.Credentials, config.Global.Identifier)
-			audits, err := client.Subscriptions.Audit(context.Background(), idArg)
+			audits, err := client.Audit.List(context.Background(), idArg)
 			if err != nil {
 				logger.Printf("error getting audits: %s\n", err)
 				return

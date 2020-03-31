@@ -72,13 +72,9 @@ type Client struct {
 	// Reuse a single struct instead of allocating one for each service on the heap.
 	common service
 
-	Subscriptions *SubscriptionService
-}
-
-// service holds a pointer to the Client for service related
-// methods to access Client methods, such as newRequest and do.
-type service struct {
-	client *Client
+	Subscription *SubscriptionService
+	Content      *ContentService
+	Audit        *AuditService
 }
 
 // NewClient creates a Client using the provided httpClient.
@@ -105,7 +101,9 @@ func NewClient(httpClient *http.Client, tenantID string, pubIdentifier string) *
 	}
 	c.common.client = c
 
-	c.Subscriptions = (*SubscriptionService)(&c.common)
+	c.Subscription = (*SubscriptionService)(&c.common)
+	c.Content = (*ContentService)(&c.common)
+	c.Audit = (*AuditService)(&c.common)
 	return c
 }
 
