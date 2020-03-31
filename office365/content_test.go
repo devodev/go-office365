@@ -235,7 +235,7 @@ func TestContent(t *testing.T) {
 
 	for idx, c := range cases {
 		t.Run(fmt.Sprintf("%d.", idx+1), func(t *testing.T) {
-			contents, err := client.Content.Content(context.Background(), &c.ContentType, c.StartTime, c.EndTime)
+			contents, err := client.Content.List(context.Background(), &c.ContentType, c.StartTime, c.EndTime)
 			testError(t, c.Want, c.WantError, err)
 			if len(contents) == 0 && len(c.Want) == 0 {
 				return

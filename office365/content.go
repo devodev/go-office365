@@ -10,7 +10,7 @@ import (
 // ContentService .
 type ContentService service
 
-// Content returns a list of content available for retrieval.
+// List returns a list of content available for retrieval.
 //
 // Microsoft API Reference: https://docs.microsoft.com/en-us/office/office-365-management-api/office-365-management-activity-api-reference#list-available-content
 //
@@ -18,7 +18,7 @@ type ContentService service
 // The content is an aggregation of actions and events harvested from multiple servers across multiple datacenters.
 // The content will be listed in the order in which the aggregations become available, but the events and actions within
 // the aggregations are not guaranteed to be sequential. An error is returned if the subscription status is disabled.
-func (s *ContentService) Content(ctx context.Context, ct *ContentType, startTime time.Time, endTime time.Time) ([]Content, error) {
+func (s *ContentService) List(ctx context.Context, ct *ContentType, startTime time.Time, endTime time.Time) ([]Content, error) {
 	params := NewQueryParams()
 	params.AddPubIdentifier(s.client.pubIdentifier)
 	if err := params.AddContentType(ct); err != nil {

@@ -75,7 +75,6 @@ type Client struct {
 	Subscription *SubscriptionService
 	Content      *ContentService
 	Audit        *AuditService
-	Watch        *WatchService
 }
 
 // NewClient creates a Client using the provided httpClient.
@@ -105,7 +104,6 @@ func NewClient(httpClient *http.Client, tenantID string, pubIdentifier string) *
 	c.Subscription = (*SubscriptionService)(&c.common)
 	c.Content = (*ContentService)(&c.common)
 	c.Audit = (*AuditService)(&c.common)
-	c.Watch = (*WatchService)(&c.common)
 	return c
 }
 

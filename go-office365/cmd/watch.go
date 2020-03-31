@@ -51,7 +51,7 @@ func newCommandWatch() *cobra.Command {
 				TickerIntervalSeconds:  watchConfig.Global.TickerIntervalSeconds,
 			}
 
-			resultChan, err := client.Watch.Watch(ctx, watcherConf)
+			resultChan, err := client.Subscription.Watch(ctx, watcherConf)
 			if err != nil {
 				logger.Printf("error occured calling watch: %s\n", err)
 				return
