@@ -60,8 +60,8 @@ func newCommandWatch() *cobra.Command {
 		},
 	}
 	cmd.Flags().IntVar(&tickerIntervalSeconds, "ticker-interval", 5, "TickerIntervalSeconds")
-	cmd.Flags().IntVar(&fetcherCount, "fetcher-count", 10, "FetcherCount")
-	cmd.Flags().IntVar(&fetcherIntervalSeconds, "fetcher-interval", 60, "FetcherIntervalSeconds")
+	cmd.Flags().IntVar(&fetcherCount, "fetcher-count", 5, "FetcherCount")
+	cmd.Flags().IntVar(&fetcherIntervalSeconds, "fetcher-interval", 5, "FetcherIntervalSeconds")
 	cmd.Flags().IntVar(&fetcherLookBehindMinutes, "fetcher-lookbehind", 1, "FetcherLookBehindMinutes")
 
 	return cmd
