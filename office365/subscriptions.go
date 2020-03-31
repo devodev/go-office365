@@ -203,7 +203,7 @@ func (s *SubscriptionService) Audit(ctx context.Context, contentID string) ([]Au
 // Watch is used as a dynamic way for fetching events.
 // It will poll the current subscriptions for available content
 // at regular intervals and returns a channel for consuming returned events.
-func (s *SubscriptionService) Watch(ctx context.Context, fetcherCount int, lookBehindMinutes int, intervalSeconds int) (<-chan Resource, error) {
+func (s *SubscriptionService) Watch(ctx context.Context, fetcherCount int, lookBehindMinutes int, fetcherIntervalSeconds int, tickerIntervalSeconds int) (<-chan Resource, error) {
 	if fetcherCount <= 0 {
 		return nil, fmt.Errorf("fetcherCount must be greater than 0")
 	}
@@ -216,10 +216,10 @@ func (s *SubscriptionService) Watch(ctx context.Context, fetcherCount int, lookB
 		return nil, fmt.Errorf("lookBehindMinutes must be less than 24 hours")
 	}
 
-	if intervalSeconds <= 0 {
+	if tickerIntervalSeconds <= 0 {
 		return nil, fmt.Errorf("intervalSeconds must be greater than 0")
 	}
-	intervalDur := time.Duration(intervalSeconds) * time.Second
+	intervalDur := time.Duration(tickerIntervalSeconds) * time.Second
 	if intervalDur > 24*time.Hour {
 		return nil, fmt.Errorf("intervalSeconds must be less than 24 hours")
 	}
@@ -230,7 +230,7 @@ func (s *SubscriptionService) Watch(ctx context.Context, fetcherCount int, lookB
 	for i := 0; i < fetcherCount; i++ {
 		go s.fetcher(ctx, lookBehindMinutes, generatedChan, resultChan)
 	}
-	go s.resourceGenerator(ctx, intervalSeconds, generatedChan)
+	go s.resourceGenerator(ctx, fetcherIntervalSeconds, tickerIntervalSeconds, generatedChan)
 
 	go func() {
 		for {
@@ -246,8 +246,9 @@ func (s *SubscriptionService) Watch(ctx context.Context, fetcherCount int, lookB
 	return resultChan, nil
 }
 
-func (s *SubscriptionService) resourceGenerator(ctx context.Context, intervalSeconds int, out chan Resource) {
-	tickerDur := time.Duration(intervalSeconds) * time.Second
+func (s *SubscriptionService) resourceGenerator(ctx context.Context, fetcherIntervalSeconds int, tickerIntervalSeconds int, out chan Resource) {
+	fetcherDur := time.Duration(fetcherIntervalSeconds) * time.Second
+	tickerDur := time.Duration(tickerIntervalSeconds) * time.Second
 	ticker := time.NewTicker(tickerDur)
 	defer ticker.Stop()
 
@@ -267,7 +268,7 @@ func (s *SubscriptionService) resourceGenerator(ctx context.Context, intervalSec
 					return
 				}
 
-				startTime := t.Add(-(tickerDur))
+				startTime := t.Add(-(fetcherDur))
 				endTime := t
 
 				for _, sub := range subscriptions {
@@ -298,11 +299,11 @@ func (s *SubscriptionService) fetcher(ctx context.Context, lookBehindMinutes int
 			continue
 		}
 
-		//fmt.Printf("DEBUG: [%s] fetcher.start: %s\n", r.Request.ContentType, start.String())
-		//fmt.Printf("DEBUG: [%s] fetcher.end: %s\n", r.Request.ContentType, end.String())
+		fmt.Printf("DEBUG: [%s] fetcher.start: %s\n", r.Request.ContentType, start.String())
+		fmt.Printf("DEBUG: [%s] fetcher.end: %s\n", r.Request.ContentType, end.String())
 
-		//fmt.Printf("DEBUG: [%s] request.startTime: %s\n", r.Request.ContentType, r.Request.StartTime.String())
-		//fmt.Printf("DEBUG: [%s] request.EndTime: %s\n", r.Request.ContentType, r.Request.EndTime.String())
+		fmt.Printf("DEBUG: [%s] request.startTime: %s\n", r.Request.ContentType, r.Request.StartTime.String())
+		fmt.Printf("DEBUG: [%s] request.EndTime: %s\n", r.Request.ContentType, r.Request.EndTime.String())
 
 		var records []AuditRecord
 		for _, c := range content {
@@ -311,7 +312,7 @@ func (s *SubscriptionService) fetcher(ctx context.Context, lookBehindMinutes int
 				r.AddError(err)
 				continue
 			}
-			//fmt.Printf("DEBUG: [%s] created: %s\n", r.Request.ContentType, created.String())
+			fmt.Printf("DEBUG: [%s] created: %s\n", r.Request.ContentType, created.String())
 
 			createdAfterOrEqual := created.After(r.Request.StartTime) || created.Equal(r.Request.StartTime)
 			if createdAfterOrEqual && created.Before(r.Request.EndTime) {
@@ -386,7 +387,6 @@ func NewPrinter(w io.Writer) *Printer {
 // Handle .
 func (h Printer) Handle(in <-chan Resource) {
 	for r := range in {
-		fmt.Println(r)
 		for idx, e := range r.Errors {
 			fmt.Fprintf(h.writer, "[%s] Error%d: %s", r.Request.ContentType, idx, e.Error())
 		}
@@ -397,8 +397,8 @@ func (h Printer) Handle(in <-chan Resource) {
 				continue
 			}
 			var out bytes.Buffer
-			json.Indent(&out, auditStr, "=", "\t")
-			fmt.Fprintf(h.writer, "[%s] %s", r.Request.ContentType, out.String())
+			json.Indent(&out, auditStr, "", "\t")
+			fmt.Fprintf(h.writer, "[%s]\n%s\n", r.Request.ContentType, out.String())
 		}
 	}
 }

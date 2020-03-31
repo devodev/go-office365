@@ -47,6 +47,7 @@ func newCommandWatch() *cobra.Command {
 			resultChan, err := client.Subscriptions.Watch(ctx,
 				watchConfig.Global.FetcherCount,
 				watchConfig.Global.FetcherLookBehindMinutes,
+				watchConfig.Global.FetcherIntervalSeconds,
 				watchConfig.Global.TickerIntervalSeconds)
 			if err != nil {
 				logger.Printf("error occured calling watch: %s\n", err)
@@ -64,6 +65,7 @@ type WatchConfig struct {
 	Global struct {
 		TickerIntervalSeconds    int
 		FetcherCount             int
+		FetcherIntervalSeconds   int
 		FetcherLookBehindMinutes int
 		PubIdentifier            string
 	}
