@@ -366,6 +366,43 @@ type ResourceResponse struct {
 	Records []AuditRecord
 }
 
+// ResourceHandler is an interface for handling streamed resources.
+type ResourceHandler interface {
+	Handle(<-chan Resource)
+}
+
+// Printer implements the ResourceHandler interface.
+// It prints a human readable formatted resource on the
+// provided writer.
+type Printer struct {
+	writer io.Writer
+}
+
+// NewPrinter returns a printer using the provided writer.
+func NewPrinter(w io.Writer) *Printer {
+	return &Printer{w}
+}
+
+// Handle .
+func (h Printer) Handle(in <-chan Resource) {
+	for r := range in {
+		fmt.Println(r)
+		for idx, e := range r.Errors {
+			fmt.Fprintf(h.writer, "[%s] Error%d: %s", r.Request.ContentType, idx, e.Error())
+		}
+		for _, a := range r.Response.Records {
+			auditStr, err := json.Marshal(a)
+			if err != nil {
+				fmt.Fprintf(h.writer, "error marshalling audit: %s\n", err)
+				continue
+			}
+			var out bytes.Buffer
+			json.Indent(&out, auditStr, "=", "\t")
+			fmt.Fprintf(h.writer, "[%s] %s", r.Request.ContentType, out.String())
+		}
+	}
+}
+
 // QueryParams .
 type QueryParams struct {
 	url.Values

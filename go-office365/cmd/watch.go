@@ -2,8 +2,6 @@ package cmd
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -54,26 +52,11 @@ func newCommandWatch() *cobra.Command {
 				logger.Printf("error occured calling watch: %s\n", err)
 				return
 			}
-			printer(resultChan)
+			printer := office365.NewPrinter(defaultOutput)
+			printer.Handle(resultChan)
 		},
 	}
 	return cmd
-}
-
-func printer(in <-chan office365.Resource) {
-	for r := range in {
-		for idx, e := range r.Errors {
-			WriteOut(fmt.Sprintf("[%s] Error%d: %s", r.Request.ContentType, idx, e.Error()))
-		}
-		for _, a := range r.Response.Records {
-			auditStr, err := json.Marshal(a)
-			if err != nil {
-				logger.Printf("error marshalling audit: %s\n", err)
-				continue
-			}
-			WriteOut(fmt.Sprintf("[%s] %s", r.Request.ContentType, string(auditStr)))
-		}
-	}
 }
 
 // WatchConfig .
