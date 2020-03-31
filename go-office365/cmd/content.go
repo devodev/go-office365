@@ -43,7 +43,7 @@ func newCommandContent() *cobra.Command {
 			endTime := parseDate(endTime)
 
 			client := office365.NewClientAuthenticated(&config.Credentials, config.Global.Identifier)
-			content, err := client.Subscriptions.Content(context.Background(), ct, startTime, endTime)
+			content, err := client.Content.Content(context.Background(), ct, startTime, endTime)
 			if err != nil {
 				logger.Printf("error getting content: %s\n", err)
 				return

@@ -19,7 +19,7 @@ func newCommandSubscriptions() *cobra.Command {
 		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
 			client := office365.NewClientAuthenticated(&config.Credentials, config.Global.Identifier)
-			subscriptions, err := client.Subscriptions.List(context.Background())
+			subscriptions, err := client.Subscription.List(context.Background())
 			if err != nil {
 				logger.Printf("error getting subscriptions: %s\n", err)
 				return
