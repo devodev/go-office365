@@ -20,7 +20,6 @@ func newCommandWatch() *cobra.Command {
 		fetcherCount             int
 		fetcherIntervalSeconds   int
 		fetcherLookBehindMinutes int
-		pubIdentifier            string
 	)
 
 	cmd := &cobra.Command{
@@ -64,7 +63,6 @@ func newCommandWatch() *cobra.Command {
 	cmd.Flags().IntVar(&fetcherCount, "fetcher-count", 10, "FetcherCount")
 	cmd.Flags().IntVar(&fetcherIntervalSeconds, "fetcher-interval", 60, "FetcherIntervalSeconds")
 	cmd.Flags().IntVar(&fetcherLookBehindMinutes, "fetcher-lookbehind", 1, "FetcherLookBehindMinutes")
-	cmd.Flags().StringVar(&pubIdentifier, "identifier", "", "Publisher Identifier")
 
 	return cmd
 }
