@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"sync"
 	"time"
 )
 
@@ -129,15 +130,23 @@ type SubscriptionWatcher struct {
 	client *Client
 	config SubscriptionWatcherConfig
 
+	// message bus
 	queue chan Resource
+
+	// state
+	muContentType      *sync.Mutex
+	contentTypeBusy    map[ContentType]bool
+	muCreated          *sync.RWMutex
+	lastContentCreated map[ContentType]time.Time
+	muRequest          *sync.RWMutex
+	lastRequestTime    map[ContentType]time.Time
 }
 
 // SubscriptionWatcherConfig .
 type SubscriptionWatcherConfig struct {
-	FetcherCount           int
-	LookBehindMinutes      int
-	FetcherIntervalSeconds int
-	TickerIntervalSeconds  int
+	FetcherCount          int
+	LookBehindMinutes     int
+	TickerIntervalSeconds int
 }
 
 // NewSubscriptionWatcher returns a new watcher that uses the provided client
@@ -152,32 +161,107 @@ func NewSubscriptionWatcher(client *Client, conf SubscriptionWatcherConfig) (*Su
 		return nil, fmt.Errorf("lookBehindMinutes must be greater than 0")
 	}
 	if lookBehindDur > 24*time.Hour {
-		return nil, fmt.Errorf("lookBehindMinutes must be less than 24 hours")
-	}
-
-	fetcherIntervalDur := time.Duration(conf.FetcherIntervalSeconds) * time.Second
-	if fetcherIntervalDur <= 0 {
-		return nil, fmt.Errorf("fetcherIntervalSeconds must be greater than 0")
-	}
-	if fetcherIntervalDur > 24*time.Hour {
-		return nil, fmt.Errorf("fetcherIntervalSeconds must be less than 24 hours")
+		return nil, fmt.Errorf("lookBehindMinutes must be less than or equal to 24 hours")
 	}
 
 	tickerIntervalDur := time.Duration(conf.TickerIntervalSeconds) * time.Second
 	if tickerIntervalDur <= 0 {
 		return nil, fmt.Errorf("tickerIntervalSeconds must be greater than 0")
 	}
-	if tickerIntervalDur > 24*time.Hour {
-		return nil, fmt.Errorf("tickerIntervalSeconds must be less than 24 hours")
+	if tickerIntervalDur > time.Hour {
+		return nil, fmt.Errorf("tickerIntervalSeconds must be less than or equal to 1 hour")
 	}
 
 	watcher := &SubscriptionWatcher{
 		client: client,
 		config: conf,
 
-		queue: make(chan Resource),
+		queue: make(chan Resource, conf.FetcherCount),
+
+		muContentType:      &sync.Mutex{},
+		contentTypeBusy:    make(map[ContentType]bool),
+		muCreated:          &sync.RWMutex{},
+		lastContentCreated: make(map[ContentType]time.Time),
+		muRequest:          &sync.RWMutex{},
+		lastRequestTime:    make(map[ContentType]time.Time),
 	}
 	return watcher, nil
+}
+
+func (s SubscriptionWatcher) sendResourceOrSkip(r Resource) {
+	select {
+	case s.queue <- r:
+	default:
+		return
+	}
+}
+
+func (s SubscriptionWatcher) isBusy(ct *ContentType) bool {
+	s.muContentType.Lock()
+	defer s.muContentType.Unlock()
+
+	busy, ok := s.contentTypeBusy[*ct]
+	if !ok {
+		busy = false
+		s.contentTypeBusy[*ct] = busy
+	}
+	return busy
+}
+
+func (s SubscriptionWatcher) setBusy(ct *ContentType) {
+	s.muContentType.Lock()
+	defer s.muContentType.Unlock()
+
+	s.contentTypeBusy[*ct] = true
+}
+
+func (s SubscriptionWatcher) unsetBusy(ct *ContentType) {
+	s.muContentType.Lock()
+	defer s.muContentType.Unlock()
+
+	s.contentTypeBusy[*ct] = false
+}
+
+func (s SubscriptionWatcher) setLastContentCreated(ct *ContentType, t time.Time) {
+	s.muCreated.Lock()
+	defer s.muCreated.Unlock()
+
+	last, ok := s.lastContentCreated[*ct]
+	if !ok || last.Before(t) {
+		s.lastContentCreated[*ct] = t
+	}
+}
+
+func (s SubscriptionWatcher) getLastContentCreated(ct *ContentType) time.Time {
+	s.muCreated.RLock()
+	defer s.muCreated.RUnlock()
+
+	t, ok := s.lastContentCreated[*ct]
+	if !ok {
+		return time.Time{}
+	}
+	return t
+}
+
+func (s SubscriptionWatcher) setLastRequestTime(ct *ContentType, t time.Time) {
+	s.muRequest.Lock()
+	defer s.muRequest.Unlock()
+
+	last, ok := s.lastRequestTime[*ct]
+	if !ok || last.Before(t) {
+		s.lastRequestTime[*ct] = t
+	}
+}
+
+func (s SubscriptionWatcher) getLastRequestTime(ct *ContentType) time.Time {
+	s.muRequest.RLock()
+	defer s.muRequest.RUnlock()
+
+	t, ok := s.lastRequestTime[*ct]
+	if !ok {
+		return time.Time{}
+	}
+	return t
 }
 
 // Run implements the Watcher interface.
@@ -205,7 +289,6 @@ func (s SubscriptionWatcher) Run(ctx context.Context) chan Resource {
 
 // Generator .
 func (s SubscriptionWatcher) generator(ctx context.Context) {
-	fetcherDur := time.Duration(s.config.FetcherIntervalSeconds) * time.Second
 	tickerDur := time.Duration(s.config.TickerIntervalSeconds) * time.Second
 	ticker := time.NewTicker(tickerDur)
 	defer ticker.Stop()
@@ -221,23 +304,30 @@ func (s SubscriptionWatcher) generator(ctx context.Context) {
 
 				subscriptions, err := s.client.Subscription.List(ctx)
 				if err != nil {
+					// TODO: could be a good idea to put the errors
+					// TODO: unrelated to a specific contentType audit query
+					// TODO: on the SubscriptionWatcher struct.
+					// TODO: We would also need to return a separate channel in Run
+					// TODO: for sending status/errors to the caller, aside from
+					// TODO: the resource channel.
 					resource.AddError(err)
-					s.queue <- resource
+					s.sendResourceOrSkip(resource)
 					return
 				}
 
-				startTime := t.Add(-(fetcherDur))
-				endTime := t
-
 				for _, sub := range subscriptions {
+
 					ct, err := GetContentType(sub.ContentType)
 					if err != nil {
 						resource.AddError(err)
-						s.queue <- resource
+						s.sendResourceOrSkip(resource)
 						continue
 					}
-					resource.SetRequest(ct, startTime, endTime)
-					s.queue <- resource
+					if s.isBusy(ct) {
+						continue
+					}
+					resource.SetRequest(ct, t)
+					s.sendResourceOrSkip(resource)
 				}
 			}()
 		}
@@ -247,22 +337,37 @@ func (s SubscriptionWatcher) generator(ctx context.Context) {
 // Fetcher .
 func (s SubscriptionWatcher) fetcher(ctx context.Context, out chan Resource) {
 	for r := range s.queue {
-		lookBehind := time.Duration(s.config.LookBehindMinutes) * time.Minute
-		start := r.Request.EndTime.Add(-(lookBehind))
-		end := r.Request.EndTime
+		s.setBusy(r.Request.ContentType)
+
+		lastRequestTime := s.getLastRequestTime(r.Request.ContentType)
+		lastContentCreated := s.getLastContentCreated(r.Request.ContentType)
+
+		fmt.Printf("DEBUG: [%s] lastRequestTime: %s\n", r.Request.ContentType, lastRequestTime.String())
+		fmt.Printf("DEBUG: [%s] lastContentCreated: %s\n", r.Request.ContentType, lastContentCreated.String())
+
+		start := lastRequestTime
+		end := r.Request.RequestTime
+		delta := start.Sub(r.Request.RequestTime)
+		switch {
+		case start.IsZero(), delta < time.Minute:
+			lookBehind := time.Duration(s.config.LookBehindMinutes) * time.Minute
+			start = r.Request.RequestTime.Add(-(lookBehind))
+		case delta > intervalOneDay:
+			start = r.Request.RequestTime.Add(-(intervalOneDay))
+		}
+
+		fmt.Printf("DEBUG: [%s] request.RequestTime: %s\n", r.Request.ContentType, r.Request.RequestTime.String())
+		fmt.Printf("DEBUG: [%s] fetcher.start: %s\n", r.Request.ContentType, start.String())
+		fmt.Printf("DEBUG: [%s] fetcher.end: %s\n", r.Request.ContentType, end.String())
 
 		content, err := s.client.Content.List(ctx, r.Request.ContentType, start, end)
 		if err != nil {
 			r.AddError(err)
 			out <- r
+			s.unsetBusy(r.Request.ContentType)
 			continue
 		}
-
-		fmt.Printf("DEBUG: [%s] fetcher.start: %s\n", r.Request.ContentType, start.String())
-		fmt.Printf("DEBUG: [%s] fetcher.end: %s\n", r.Request.ContentType, end.String())
-
-		fmt.Printf("DEBUG: [%s] request.startTime: %s\n", r.Request.ContentType, r.Request.StartTime.String())
-		fmt.Printf("DEBUG: [%s] request.EndTime: %s\n", r.Request.ContentType, r.Request.EndTime.String())
+		s.setLastRequestTime(r.Request.ContentType, r.Request.RequestTime)
 
 		var records []AuditRecord
 		for _, c := range content {
@@ -273,17 +378,22 @@ func (s SubscriptionWatcher) fetcher(ctx context.Context, out chan Resource) {
 			}
 			fmt.Printf("DEBUG: [%s] created: %s\n", r.Request.ContentType, created.String())
 
-			createdAfterOrEqual := created.After(r.Request.StartTime) || created.Equal(r.Request.StartTime)
-			if createdAfterOrEqual && created.Before(r.Request.EndTime) {
-				audits, err := s.client.Audit.List(ctx, c.ContentID)
-				if err != nil {
-					r.AddError(err)
-					continue
-				}
-				records = append(records, audits...)
+			if !created.After(lastContentCreated) {
+				fmt.Printf("DEBUG: [%s] created skipped\n", r.Request.ContentType)
+				continue
 			}
+			s.setLastContentCreated(r.Request.ContentType, created)
+
+			fmt.Printf("DEBUG: [%s] created fetching..\n", r.Request.ContentType)
+			audits, err := s.client.Audit.List(ctx, c.ContentID)
+			if err != nil {
+				r.AddError(err)
+				continue
+			}
+			records = append(records, audits...)
 		}
 		r.SetResponse(records)
 		out <- r
+		s.unsetBusy(r.Request.ContentType)
 	}
 }

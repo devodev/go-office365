@@ -53,11 +53,10 @@ func (r *Resource) AddError(err error) {
 }
 
 // SetRequest .
-func (r *Resource) SetRequest(ct *ContentType, startTime time.Time, endTime time.Time) {
+func (r *Resource) SetRequest(ct *ContentType, t time.Time) {
 	r.Request = ResourceRequest{
 		ContentType: ct,
-		StartTime:   startTime,
-		EndTime:     endTime,
+		RequestTime: t,
 	}
 }
 
@@ -69,8 +68,7 @@ func (r *Resource) SetResponse(records []AuditRecord) {
 // ResourceRequest .
 type ResourceRequest struct {
 	ContentType *ContentType
-	StartTime   time.Time
-	EndTime     time.Time
+	RequestTime time.Time
 }
 
 // ResourceResponse .
