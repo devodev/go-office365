@@ -209,15 +209,14 @@ func (s *SubscriptionService) Watch(ctx context.Context, conf SubscriptionWatche
 		return nil, err
 	}
 
-	resourceChan := make(chan Resource)
-	watcher.Run(ctx, resourceChan)
+	resourceChan := watcher.Run(ctx)
 
 	return resourceChan, nil
 }
 
 // Watcher is an interface used by Watch for generating a stream of records.
 type Watcher interface {
-	Run(context.Context, chan Resource)
+	Run(context.Context) chan Resource
 }
 
 // SubscriptionWatcher implements the Watcher interface.
@@ -279,7 +278,9 @@ func NewSubscriptionWatcher(client *Client, conf SubscriptionWatcherConfig) (*Su
 }
 
 // Run implements the Watcher interface.
-func (s SubscriptionWatcher) Run(ctx context.Context, out chan Resource) {
+func (s SubscriptionWatcher) Run(ctx context.Context) chan Resource {
+	out := make(chan Resource)
+
 	for i := 0; i < s.config.FetcherCount; i++ {
 		go s.fetcher(ctx, out)
 	}
@@ -295,6 +296,8 @@ func (s SubscriptionWatcher) Run(ctx context.Context, out chan Resource) {
 			}
 		}
 	}()
+
+	return out
 }
 
 // Generator .
