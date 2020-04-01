@@ -3,6 +3,7 @@ package office365
 import (
 	"bytes"
 	"context"
+	"encoding/gob"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -109,8 +110,8 @@ func (s *SubscriptionService) Stop(ctx context.Context, ct *ContentType) error {
 // at regular intervals and returns a channel for consuming returned events.
 // The context passed will ensure the channel is closed and any underlying
 // API queries are notified upon cancellation.
-func (s *SubscriptionService) Watch(ctx context.Context, conf SubscriptionWatcherConfig) (<-chan Resource, error) {
-	watcher, err := NewSubscriptionWatcher(s.client, conf)
+func (s *SubscriptionService) Watch(ctx context.Context, conf SubscriptionWatcherConfig, state State) (<-chan Resource, error) {
+	watcher, err := NewSubscriptionWatcher(s.client, conf, state)
 	if err != nil {
 		return nil, err
 	}
@@ -136,12 +137,10 @@ type SubscriptionWatcher struct {
 	queue chan Resource
 
 	// state
-	muContentType      *sync.Mutex
-	contentTypeBusy    map[ContentType]bool
-	muCreated          *sync.RWMutex
-	lastContentCreated map[ContentType]time.Time
-	muRequest          *sync.RWMutex
-	lastRequestTime    map[ContentType]time.Time
+	muBusy          *sync.Mutex
+	contentTypeBusy map[ContentType]bool
+
+	State
 }
 
 // SubscriptionWatcherConfig .
@@ -152,7 +151,7 @@ type SubscriptionWatcherConfig struct {
 
 // NewSubscriptionWatcher returns a new watcher that uses the provided client
 // for querying the API.
-func NewSubscriptionWatcher(client *Client, conf SubscriptionWatcherConfig) (*SubscriptionWatcher, error) {
+func NewSubscriptionWatcher(client *Client, conf SubscriptionWatcherConfig, s State) (*SubscriptionWatcher, error) {
 	lookBehindDur := time.Duration(conf.LookBehindMinutes) * time.Minute
 	if lookBehindDur <= 0 {
 		return nil, fmt.Errorf("lookBehindMinutes must be greater than 0")
@@ -175,27 +174,26 @@ func NewSubscriptionWatcher(client *Client, conf SubscriptionWatcherConfig) (*Su
 
 		queue: make(chan Resource, contentTypeCount),
 
-		muContentType:      &sync.Mutex{},
-		contentTypeBusy:    make(map[ContentType]bool),
-		muCreated:          &sync.RWMutex{},
-		lastContentCreated: make(map[ContentType]time.Time),
-		muRequest:          &sync.RWMutex{},
-		lastRequestTime:    make(map[ContentType]time.Time),
+		muBusy:          &sync.Mutex{},
+		contentTypeBusy: make(map[ContentType]bool),
+		State:           s,
 	}
 	return watcher, nil
 }
 
-func (s SubscriptionWatcher) sendResourceOrSkip(r Resource) {
+func (s *SubscriptionWatcher) sendResourceOrSkip(ctx context.Context, r Resource) {
 	select {
-	case s.queue <- r:
 	default:
 		return
+	case <-ctx.Done():
+		return
+	case s.queue <- r:
 	}
 }
 
-func (s SubscriptionWatcher) isBusy(ct *ContentType) bool {
-	s.muContentType.Lock()
-	defer s.muContentType.Unlock()
+func (s *SubscriptionWatcher) isBusy(ct *ContentType) bool {
+	s.muBusy.Lock()
+	defer s.muBusy.Unlock()
 
 	busy, ok := s.contentTypeBusy[*ct]
 	if !ok {
@@ -205,64 +203,22 @@ func (s SubscriptionWatcher) isBusy(ct *ContentType) bool {
 	return busy
 }
 
-func (s SubscriptionWatcher) setBusy(ct *ContentType) {
-	s.muContentType.Lock()
-	defer s.muContentType.Unlock()
+func (s *SubscriptionWatcher) setBusy(ct *ContentType) {
+	s.muBusy.Lock()
+	defer s.muBusy.Unlock()
 
 	s.contentTypeBusy[*ct] = true
 }
 
-func (s SubscriptionWatcher) unsetBusy(ct *ContentType) {
-	s.muContentType.Lock()
-	defer s.muContentType.Unlock()
+func (s *SubscriptionWatcher) unsetBusy(ct *ContentType) {
+	s.muBusy.Lock()
+	defer s.muBusy.Unlock()
 
 	s.contentTypeBusy[*ct] = false
 }
 
-func (s SubscriptionWatcher) setLastContentCreated(ct *ContentType, t time.Time) {
-	s.muCreated.Lock()
-	defer s.muCreated.Unlock()
-
-	last, ok := s.lastContentCreated[*ct]
-	if !ok || last.Before(t) {
-		s.lastContentCreated[*ct] = t
-	}
-}
-
-func (s SubscriptionWatcher) getLastContentCreated(ct *ContentType) time.Time {
-	s.muCreated.RLock()
-	defer s.muCreated.RUnlock()
-
-	t, ok := s.lastContentCreated[*ct]
-	if !ok {
-		return time.Time{}
-	}
-	return t
-}
-
-func (s SubscriptionWatcher) setLastRequestTime(ct *ContentType, t time.Time) {
-	s.muRequest.Lock()
-	defer s.muRequest.Unlock()
-
-	last, ok := s.lastRequestTime[*ct]
-	if !ok || last.Before(t) {
-		s.lastRequestTime[*ct] = t
-	}
-}
-
-func (s SubscriptionWatcher) getLastRequestTime(ct *ContentType) time.Time {
-	s.muRequest.RLock()
-	defer s.muRequest.RUnlock()
-
-	t, ok := s.lastRequestTime[*ct]
-	if !ok {
-		return time.Time{}
-	}
-	return t
-}
-
 // Run implements the Watcher interface.
-func (s SubscriptionWatcher) Run(ctx context.Context) chan Resource {
+func (s *SubscriptionWatcher) Run(ctx context.Context) chan Resource {
 	out := make(chan Resource)
 
 	for i := 0; i < contentTypeCount; i++ {
@@ -285,13 +241,15 @@ func (s SubscriptionWatcher) Run(ctx context.Context) chan Resource {
 }
 
 // Generator .
-func (s SubscriptionWatcher) generator(ctx context.Context) {
+func (s *SubscriptionWatcher) generator(ctx context.Context) {
 	tickerDur := time.Duration(s.config.TickerIntervalSeconds) * time.Second
 	ticker := time.NewTicker(tickerDur)
 	defer ticker.Stop()
 
 	for {
 		select {
+		default:
+			time.Sleep(500 * time.Millisecond)
 		case <-ctx.Done():
 			close(s.queue)
 			return
@@ -308,7 +266,7 @@ func (s SubscriptionWatcher) generator(ctx context.Context) {
 					// TODO: for sending status/errors to the caller, aside from
 					// TODO: the resource channel.
 					resource.AddError(err)
-					s.sendResourceOrSkip(resource)
+					s.sendResourceOrSkip(ctx, resource)
 					return
 				}
 
@@ -317,14 +275,14 @@ func (s SubscriptionWatcher) generator(ctx context.Context) {
 					ct, err := GetContentType(sub.ContentType)
 					if err != nil {
 						resource.AddError(err)
-						s.sendResourceOrSkip(resource)
+						s.sendResourceOrSkip(ctx, resource)
 						continue
 					}
 					if s.isBusy(ct) {
 						continue
 					}
 					resource.SetRequest(ct, t)
-					s.sendResourceOrSkip(resource)
+					s.sendResourceOrSkip(ctx, resource)
 				}
 			}()
 		}
@@ -332,7 +290,7 @@ func (s SubscriptionWatcher) generator(ctx context.Context) {
 }
 
 // Fetcher .
-func (s SubscriptionWatcher) fetcher(ctx context.Context, out chan Resource) {
+func (s *SubscriptionWatcher) fetcher(ctx context.Context, out chan Resource) {
 	for r := range s.queue {
 		s.setBusy(r.Request.ContentType)
 
@@ -359,9 +317,14 @@ func (s SubscriptionWatcher) fetcher(ctx context.Context, out chan Resource) {
 
 		content, err := s.client.Content.List(ctx, r.Request.ContentType, start, end)
 		if err != nil {
-			r.AddError(err)
-			out <- r
-			s.unsetBusy(r.Request.ContentType)
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				r.AddError(err)
+				out <- r
+				s.unsetBusy(r.Request.ContentType)
+			}
 			continue
 		}
 		s.setLastRequestTime(r.Request.ContentType, r.Request.RequestTime)
@@ -389,10 +352,148 @@ func (s SubscriptionWatcher) fetcher(ctx context.Context, out chan Resource) {
 			}
 			records = append(records, audits...)
 		}
-		r.SetResponse(records)
-		out <- r
-		s.unsetBusy(r.Request.ContentType)
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			r.SetResponse(records)
+			out <- r
+			s.unsetBusy(r.Request.ContentType)
+		}
 	}
+}
+
+// State is an interface for storing and retrieving Watcher state.
+type State interface {
+	setLastContentCreated(*ContentType, time.Time)
+	getLastContentCreated(*ContentType) time.Time
+	setLastRequestTime(*ContentType, time.Time)
+	getLastRequestTime(*ContentType) time.Time
+}
+
+// MemoryState is an in-memory State interface implementation.
+type MemoryState struct {
+	muCreated          *sync.RWMutex
+	lastContentCreated map[ContentType]time.Time
+	muRequest          *sync.RWMutex
+	lastRequestTime    map[ContentType]time.Time
+}
+
+// NewMemoryState returns a new MemoryState.
+func NewMemoryState() *MemoryState {
+	return &MemoryState{
+		muCreated:          &sync.RWMutex{},
+		lastContentCreated: make(map[ContentType]time.Time),
+		muRequest:          &sync.RWMutex{},
+		lastRequestTime:    make(map[ContentType]time.Time),
+	}
+}
+
+func (m *MemoryState) setLastContentCreated(ct *ContentType, t time.Time) {
+	m.muCreated.Lock()
+	defer m.muCreated.Unlock()
+
+	last, ok := m.lastContentCreated[*ct]
+	if !ok || last.Before(t) {
+		m.lastContentCreated[*ct] = t
+	}
+}
+
+func (m *MemoryState) getLastContentCreated(ct *ContentType) time.Time {
+	m.muCreated.RLock()
+	defer m.muCreated.RUnlock()
+
+	t, ok := m.lastContentCreated[*ct]
+	if !ok {
+		return time.Time{}
+	}
+	return t
+}
+
+func (m *MemoryState) setLastRequestTime(ct *ContentType, t time.Time) {
+	m.muRequest.Lock()
+	defer m.muRequest.Unlock()
+
+	last, ok := m.lastRequestTime[*ct]
+	if !ok || last.Before(t) {
+		m.lastRequestTime[*ct] = t
+	}
+}
+
+func (m *MemoryState) getLastRequestTime(ct *ContentType) time.Time {
+	m.muRequest.RLock()
+	defer m.muRequest.RUnlock()
+
+	t, ok := m.lastRequestTime[*ct]
+	if !ok {
+		return time.Time{}
+	}
+	return t
+}
+
+// GOBState is an in-memory State interface implementation, but
+// also provides Read and Write methods for serializing/deserializing
+// on io.Reader/io.Writer.
+// It uses the encoding/gob package.
+type GOBState struct {
+	*MemoryState
+}
+
+// NewGOBState returns a new GOBState.
+func NewGOBState() *GOBState {
+	return &GOBState{NewMemoryState()}
+}
+
+func (g *GOBState) createBlob() *GOBStateBlob {
+	g.muCreated.RLock()
+	g.muRequest.RLock()
+	defer g.muCreated.RUnlock()
+	defer g.muRequest.RUnlock()
+
+	return &GOBStateBlob{
+		LastContentCreated: g.lastContentCreated,
+		LastRequestTime:    g.lastRequestTime,
+	}
+}
+
+func (g *GOBState) setFromBlob(b *GOBStateBlob) {
+	g.muCreated.Lock()
+	g.muRequest.Lock()
+	defer g.muCreated.Unlock()
+	defer g.muRequest.Unlock()
+
+	g.lastContentCreated = b.LastContentCreated
+	g.lastRequestTime = b.LastRequestTime
+}
+
+// Read will deserialize from a reader and populate its internal state.
+func (g *GOBState) Read(r io.Reader) error {
+	decoder := gob.NewDecoder(r)
+
+	var blob GOBStateBlob
+	if err := decoder.Decode(&blob); err != nil {
+		return err
+	}
+	g.setFromBlob(&blob)
+	return nil
+}
+
+// Write will serialize its internal state and write to a writer.
+func (g *GOBState) Write(w io.Writer) error {
+	encoder := gob.NewEncoder(w)
+
+	blob := g.createBlob()
+	if err := encoder.Encode(&blob); err != nil {
+		return err
+	}
+	return nil
+}
+
+// GOBStateBlob is used to serialize/deserialize MemoryState
+// internal state.
+type GOBStateBlob struct {
+	LastContentCreated map[ContentType]time.Time
+	LastRequestTime    map[ContentType]time.Time
 }
 
 // Resource .
