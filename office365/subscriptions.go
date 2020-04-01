@@ -107,6 +107,8 @@ func (s *SubscriptionService) Stop(ctx context.Context, ct *ContentType) error {
 // Watch is used as a dynamic way for fetching events.
 // It will poll the current subscriptions for available content
 // at regular intervals and returns a channel for consuming returned events.
+// The context passed will ensure the channel is closed and any underlying
+// API queries are notified upon cancellation.
 func (s *SubscriptionService) Watch(ctx context.Context, conf SubscriptionWatcherConfig) (<-chan Resource, error) {
 	watcher, err := NewSubscriptionWatcher(s.client, conf)
 	if err != nil {
