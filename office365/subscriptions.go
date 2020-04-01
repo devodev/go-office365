@@ -142,6 +142,212 @@ type SubscriptionWatcher struct {
 	State
 }
 
+// SubscriptionWatcherConfig .
+type SubscriptionWatcherConfig struct {
+	LookBehindMinutes     int
+	TickerIntervalSeconds int
+}
+
+// NewSubscriptionWatcher returns a new watcher that uses the provided client
+// for querying the API.
+func NewSubscriptionWatcher(client *Client, conf SubscriptionWatcherConfig, s State) (*SubscriptionWatcher, error) {
+	lookBehindDur := time.Duration(conf.LookBehindMinutes) * time.Minute
+	if lookBehindDur <= 0 {
+		return nil, fmt.Errorf("lookBehindMinutes must be greater than 0")
+	}
+	if lookBehindDur > 24*time.Hour {
+		return nil, fmt.Errorf("lookBehindMinutes must be less than or equal to 24 hours")
+	}
+
+	tickerIntervalDur := time.Duration(conf.TickerIntervalSeconds) * time.Second
+	if tickerIntervalDur <= 0 {
+		return nil, fmt.Errorf("tickerIntervalSeconds must be greater than 0")
+	}
+	if tickerIntervalDur > time.Hour {
+		return nil, fmt.Errorf("tickerIntervalSeconds must be less than or equal to 1 hour")
+	}
+
+	watcher := &SubscriptionWatcher{
+		client: client,
+		config: conf,
+
+		queue: make(chan Resource, contentTypeCount),
+
+		muContentType:   &sync.Mutex{},
+		contentTypeBusy: make(map[ContentType]bool),
+		State:           s,
+	}
+	return watcher, nil
+}
+
+func (s *SubscriptionWatcher) sendResourceOrSkip(r Resource) {
+	select {
+	case s.queue <- r:
+	default:
+		return
+	}
+}
+
+func (s *SubscriptionWatcher) isBusy(ct *ContentType) bool {
+	s.muContentType.Lock()
+	defer s.muContentType.Unlock()
+
+	busy, ok := s.contentTypeBusy[*ct]
+	if !ok {
+		busy = false
+		s.contentTypeBusy[*ct] = busy
+	}
+	return busy
+}
+
+func (s *SubscriptionWatcher) setBusy(ct *ContentType) {
+	s.muContentType.Lock()
+	defer s.muContentType.Unlock()
+
+	s.contentTypeBusy[*ct] = true
+}
+
+func (s *SubscriptionWatcher) unsetBusy(ct *ContentType) {
+	s.muContentType.Lock()
+	defer s.muContentType.Unlock()
+
+	s.contentTypeBusy[*ct] = false
+}
+
+// Run implements the Watcher interface.
+func (s *SubscriptionWatcher) Run(ctx context.Context) chan Resource {
+	out := make(chan Resource)
+
+	for i := 0; i < contentTypeCount; i++ {
+		go s.fetcher(ctx, out)
+	}
+	go s.generator(ctx)
+
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				close(out)
+				return
+			default:
+			}
+		}
+	}()
+
+	return out
+}
+
+// Generator .
+func (s *SubscriptionWatcher) generator(ctx context.Context) {
+	tickerDur := time.Duration(s.config.TickerIntervalSeconds) * time.Second
+	ticker := time.NewTicker(tickerDur)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			close(s.queue)
+			return
+		case t := <-ticker.C:
+			go func() {
+				resource := Resource{}
+
+				subscriptions, err := s.client.Subscription.List(ctx)
+				if err != nil {
+					// TODO: could be a good idea to put the errors
+					// TODO: unrelated to a specific contentType audit query
+					// TODO: on the SubscriptionWatcher struct.
+					// TODO: We would also need to return a separate channel in Run
+					// TODO: for sending status/errors to the caller, aside from
+					// TODO: the resource channel.
+					resource.AddError(err)
+					s.sendResourceOrSkip(resource)
+					return
+				}
+
+				for _, sub := range subscriptions {
+
+					ct, err := GetContentType(sub.ContentType)
+					if err != nil {
+						resource.AddError(err)
+						s.sendResourceOrSkip(resource)
+						continue
+					}
+					if s.isBusy(ct) {
+						continue
+					}
+					resource.SetRequest(ct, t)
+					s.sendResourceOrSkip(resource)
+				}
+			}()
+		}
+	}
+}
+
+// Fetcher .
+func (s *SubscriptionWatcher) fetcher(ctx context.Context, out chan Resource) {
+	for r := range s.queue {
+		s.setBusy(r.Request.ContentType)
+
+		lastRequestTime := s.getLastRequestTime(r.Request.ContentType)
+		lastContentCreated := s.getLastContentCreated(r.Request.ContentType)
+
+		fmt.Printf("DEBUG: [%s] lastRequestTime: %s\n", r.Request.ContentType, lastRequestTime.String())
+		fmt.Printf("DEBUG: [%s] lastContentCreated: %s\n", r.Request.ContentType, lastContentCreated.String())
+
+		start := lastRequestTime
+		end := r.Request.RequestTime
+		delta := start.Sub(r.Request.RequestTime)
+		switch {
+		case start.IsZero(), delta < time.Minute:
+			lookBehind := time.Duration(s.config.LookBehindMinutes) * time.Minute
+			start = r.Request.RequestTime.Add(-(lookBehind))
+		case delta > intervalOneDay:
+			start = r.Request.RequestTime.Add(-(intervalOneDay))
+		}
+
+		fmt.Printf("DEBUG: [%s] request.RequestTime: %s\n", r.Request.ContentType, r.Request.RequestTime.String())
+		fmt.Printf("DEBUG: [%s] fetcher.start: %s\n", r.Request.ContentType, start.String())
+		fmt.Printf("DEBUG: [%s] fetcher.end: %s\n", r.Request.ContentType, end.String())
+
+		content, err := s.client.Content.List(ctx, r.Request.ContentType, start, end)
+		if err != nil {
+			r.AddError(err)
+			out <- r
+			s.unsetBusy(r.Request.ContentType)
+			continue
+		}
+		s.setLastRequestTime(r.Request.ContentType, r.Request.RequestTime)
+
+		var records []AuditRecord
+		for _, c := range content {
+			created, err := time.ParseInLocation(CreatedDatetimeFormat, c.ContentCreated, time.Local)
+			if err != nil {
+				r.AddError(err)
+				continue
+			}
+			fmt.Printf("DEBUG: [%s] created: %s\n", r.Request.ContentType, created.String())
+
+			if !created.After(lastContentCreated) {
+				fmt.Printf("DEBUG: [%s] created skipped\n", r.Request.ContentType)
+				continue
+			}
+			s.setLastContentCreated(r.Request.ContentType, created)
+
+			fmt.Printf("DEBUG: [%s] created fetching..\n", r.Request.ContentType)
+			audits, err := s.client.Audit.List(ctx, c.ContentID)
+			if err != nil {
+				r.AddError(err)
+				continue
+			}
+			records = append(records, audits...)
+		}
+		r.SetResponse(records)
+		out <- r
+		s.unsetBusy(r.Request.ContentType)
+	}
+}
+
 // State is an interface for storing and retrieving Watcher state.
 type State interface {
 	setLastContentCreated(*ContentType, time.Time)
@@ -210,210 +416,27 @@ func (m *MemoryState) getLastRequestTime(ct *ContentType) time.Time {
 	return t
 }
 
-// SubscriptionWatcherConfig .
-type SubscriptionWatcherConfig struct {
-	LookBehindMinutes     int
-	TickerIntervalSeconds int
+// GOBState is an in-memory State interface implementation, but
+// also provides Read and Write methods for serializing/deserializing
+// on io.Reader/io.Writer.
+// It uses the encoding/gob package.
+type GOBState struct {
+	*MemoryState
 }
 
-// NewSubscriptionWatcher returns a new watcher that uses the provided client
-// for querying the API.
-func NewSubscriptionWatcher(client *Client, conf SubscriptionWatcherConfig, s State) (*SubscriptionWatcher, error) {
-	lookBehindDur := time.Duration(conf.LookBehindMinutes) * time.Minute
-	if lookBehindDur <= 0 {
-		return nil, fmt.Errorf("lookBehindMinutes must be greater than 0")
-	}
-	if lookBehindDur > 24*time.Hour {
-		return nil, fmt.Errorf("lookBehindMinutes must be less than or equal to 24 hours")
-	}
-
-	tickerIntervalDur := time.Duration(conf.TickerIntervalSeconds) * time.Second
-	if tickerIntervalDur <= 0 {
-		return nil, fmt.Errorf("tickerIntervalSeconds must be greater than 0")
-	}
-	if tickerIntervalDur > time.Hour {
-		return nil, fmt.Errorf("tickerIntervalSeconds must be less than or equal to 1 hour")
-	}
-
-	watcher := &SubscriptionWatcher{
-		client: client,
-		config: conf,
-
-		queue: make(chan Resource, contentTypeCount),
-
-		muContentType:   &sync.Mutex{},
-		contentTypeBusy: make(map[ContentType]bool),
-		State:           s,
-	}
-	return watcher, nil
+// NewGOBState returns a new GOBState.
+func NewGOBState() *GOBState {
+	return &GOBState{NewMemoryState()}
 }
 
-func (s SubscriptionWatcher) sendResourceOrSkip(r Resource) {
-	select {
-	case s.queue <- r:
-	default:
-		return
-	}
+// Read will deserialize from a reader and populate its internal state.
+func (g *GOBState) Read(r io.Reader) error {
+	return nil
 }
 
-func (s SubscriptionWatcher) isBusy(ct *ContentType) bool {
-	s.muContentType.Lock()
-	defer s.muContentType.Unlock()
-
-	busy, ok := s.contentTypeBusy[*ct]
-	if !ok {
-		busy = false
-		s.contentTypeBusy[*ct] = busy
-	}
-	return busy
-}
-
-func (s SubscriptionWatcher) setBusy(ct *ContentType) {
-	s.muContentType.Lock()
-	defer s.muContentType.Unlock()
-
-	s.contentTypeBusy[*ct] = true
-}
-
-func (s SubscriptionWatcher) unsetBusy(ct *ContentType) {
-	s.muContentType.Lock()
-	defer s.muContentType.Unlock()
-
-	s.contentTypeBusy[*ct] = false
-}
-
-// Run implements the Watcher interface.
-func (s SubscriptionWatcher) Run(ctx context.Context) chan Resource {
-	out := make(chan Resource)
-
-	for i := 0; i < contentTypeCount; i++ {
-		go s.fetcher(ctx, out)
-	}
-	go s.generator(ctx)
-
-	go func() {
-		for {
-			select {
-			case <-ctx.Done():
-				close(out)
-				return
-			default:
-			}
-		}
-	}()
-
-	return out
-}
-
-// Generator .
-func (s SubscriptionWatcher) generator(ctx context.Context) {
-	tickerDur := time.Duration(s.config.TickerIntervalSeconds) * time.Second
-	ticker := time.NewTicker(tickerDur)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ctx.Done():
-			close(s.queue)
-			return
-		case t := <-ticker.C:
-			go func() {
-				resource := Resource{}
-
-				subscriptions, err := s.client.Subscription.List(ctx)
-				if err != nil {
-					// TODO: could be a good idea to put the errors
-					// TODO: unrelated to a specific contentType audit query
-					// TODO: on the SubscriptionWatcher struct.
-					// TODO: We would also need to return a separate channel in Run
-					// TODO: for sending status/errors to the caller, aside from
-					// TODO: the resource channel.
-					resource.AddError(err)
-					s.sendResourceOrSkip(resource)
-					return
-				}
-
-				for _, sub := range subscriptions {
-
-					ct, err := GetContentType(sub.ContentType)
-					if err != nil {
-						resource.AddError(err)
-						s.sendResourceOrSkip(resource)
-						continue
-					}
-					if s.isBusy(ct) {
-						continue
-					}
-					resource.SetRequest(ct, t)
-					s.sendResourceOrSkip(resource)
-				}
-			}()
-		}
-	}
-}
-
-// Fetcher .
-func (s SubscriptionWatcher) fetcher(ctx context.Context, out chan Resource) {
-	for r := range s.queue {
-		s.setBusy(r.Request.ContentType)
-
-		lastRequestTime := s.getLastRequestTime(r.Request.ContentType)
-		lastContentCreated := s.getLastContentCreated(r.Request.ContentType)
-
-		fmt.Printf("DEBUG: [%s] lastRequestTime: %s\n", r.Request.ContentType, lastRequestTime.String())
-		fmt.Printf("DEBUG: [%s] lastContentCreated: %s\n", r.Request.ContentType, lastContentCreated.String())
-
-		start := lastRequestTime
-		end := r.Request.RequestTime
-		delta := start.Sub(r.Request.RequestTime)
-		switch {
-		case start.IsZero(), delta < time.Minute:
-			lookBehind := time.Duration(s.config.LookBehindMinutes) * time.Minute
-			start = r.Request.RequestTime.Add(-(lookBehind))
-		case delta > intervalOneDay:
-			start = r.Request.RequestTime.Add(-(intervalOneDay))
-		}
-
-		fmt.Printf("DEBUG: [%s] request.RequestTime: %s\n", r.Request.ContentType, r.Request.RequestTime.String())
-		fmt.Printf("DEBUG: [%s] fetcher.start: %s\n", r.Request.ContentType, start.String())
-		fmt.Printf("DEBUG: [%s] fetcher.end: %s\n", r.Request.ContentType, end.String())
-
-		content, err := s.client.Content.List(ctx, r.Request.ContentType, start, end)
-		if err != nil {
-			r.AddError(err)
-			out <- r
-			s.unsetBusy(r.Request.ContentType)
-			continue
-		}
-		s.setLastRequestTime(r.Request.ContentType, r.Request.RequestTime)
-
-		var records []AuditRecord
-		for _, c := range content {
-			created, err := time.ParseInLocation(CreatedDatetimeFormat, c.ContentCreated, time.Local)
-			if err != nil {
-				r.AddError(err)
-				continue
-			}
-			fmt.Printf("DEBUG: [%s] created: %s\n", r.Request.ContentType, created.String())
-
-			if !created.After(lastContentCreated) {
-				fmt.Printf("DEBUG: [%s] created skipped\n", r.Request.ContentType)
-				continue
-			}
-			s.setLastContentCreated(r.Request.ContentType, created)
-
-			fmt.Printf("DEBUG: [%s] created fetching..\n", r.Request.ContentType)
-			audits, err := s.client.Audit.List(ctx, c.ContentID)
-			if err != nil {
-				r.AddError(err)
-				continue
-			}
-			records = append(records, audits...)
-		}
-		r.SetResponse(records)
-		out <- r
-		s.unsetBusy(r.Request.ContentType)
-	}
+// Read will deserialize from a reader and populate its internal state.
+func (g *GOBState) Write(w io.Writer) error {
+	return nil
 }
 
 // Resource .
