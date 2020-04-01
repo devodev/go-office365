@@ -38,7 +38,6 @@ func newCommandWatch() *cobra.Command {
 					case <-sigChan:
 						cancel()
 						return
-					default:
 					}
 				}
 			}()
@@ -58,14 +57,17 @@ func newCommandWatch() *cobra.Command {
 				logger.Printf("using statefile: %q\n", statefileAbs)
 			}
 
-			resultChan, err := client.Subscription.Watch(ctx, watcherConf, state)
+			resurceChan, err := client.Subscription.Watch(ctx, watcherConf, state)
 			if err != nil {
 				logger.Printf("error occured calling watch: %s\n", err)
 				return
 			}
 
-			printer := office365.NewPrinter(defaultOutput)
-			printer.Handle(resultChan)
+			// printer := office365.NewHumanReadableHandler(defaultOutput)
+			// printer.Handle(resurceChan)
+
+			jsonHandler := office365.NewJSONHandler(defaultOutput, logger)
+			jsonHandler.Handle(resurceChan)
 		},
 	}
 	cmd.Flags().IntVar(&intervalSeconds, "interval", 5, "TickerIntervalSeconds")
