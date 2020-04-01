@@ -91,4 +91,4 @@ CLI
   - `Maybe:` Use a sub-sub-command to handle handler logic
 
 ## License
-go-office365 is released under the MIT license. See [LICENSE.txt](LICENSE.txt)
+`go-office365` is released under the MIT license. See [LICENSE.txt](LICENSE.txt)
