@@ -6,14 +6,15 @@
 - [Overview](#overview)
 - [Configuration file](#configuration-file)
 - [Usage](#usage)
-- [Commands](#commands)
-  - [Audit](#audit)
-  - [Content](#content)
-  - [Fetch](#fetch)
-  - [Start-sub](#start-sub)
-  - [Stop-sub](#stop-sub)
-  - [Subscriptions](#subscriptions)
-  - [Watch](#watch)
+  - [Commands](#commands)
+    - [Audit](#audit)
+    - [Content](#content)
+    - [Content-types](#content-types)
+    - [Fetch](#fetch)
+    - [Start-sub](#start-sub)
+    - [Stop-sub](#stop-sub)
+    - [Subscriptions](#subscriptions)
+    - [Watch](#watch)
 - [Roadmap](#roadmap)
 - [License](#license)
 
@@ -68,14 +69,125 @@ Flags:
 Use "go-office365 [command] --help" for more information about a command.
 ```
 
-## Commands
-### audit
-### content
-### fetch
-### start-sub
-### stop-sub
-### subscriptions
-### watch
+### Commands
+#### audit
+```
+Retrieve events and/or actions for the provided audit-id.
+
+Usage:
+  go-office365 audit [audit-id] [flags]
+
+Flags:
+  -h, --help   help for audit
+
+Global Flags:
+      --config string   config file
+```
+#### content
+```
+List content that is available to be fetched for the provided content-type.
+
+Usage:
+  go-office365 content [content-type] [flags]
+
+Flags:
+      --end string     End time
+  -h, --help           help for content
+      --start string   Start time
+
+Global Flags:
+      --config string   config file
+```
+#### content-types
+```
+List content types accepted by the Microsoft API.
+
+Usage:
+  go-office365 content-types [flags]
+
+Flags:
+  -h, --help   help for content-types
+
+Global Flags:
+      --config string   config file
+```
+#### fetch
+```
+Combination of content and audit commands.
+
+Usage:
+  go-office365 fetch [content-type] [flags]
+
+Flags:
+      --end string     End time
+  -h, --help           help for fetch
+      --start string   Start time
+
+Global Flags:
+      --config string   config file
+```
+#### start-sub
+```
+Start a subscription for the provided Content Type.
+
+Usage:
+  go-office365 start-sub [content-type] [flags]
+
+Flags:
+  -h, --help   help for start-sub
+
+Global Flags:
+      --config string   config file
+```
+#### stop-sub
+```
+Stop a subscription for the provided Content Type.
+
+Usage:
+  go-office365 stop-sub [content-type] [flags]
+
+Flags:
+  -h, --help   help for stop-sub
+
+Global Flags:
+      --config string   config file
+```
+#### subscriptions
+```
+List current subscriptions.
+
+Usage:
+  go-office365 subscriptions [flags]
+
+Flags:
+  -h, --help   help for subscriptions
+
+Global Flags:
+      --config string   config file
+```
+#### watch
+```
+Fetch audit events at regular intervals.
+
+Usage:
+  go-office365 watch [flags]
+
+Flags:
+  -h, --help               help for watch
+      --human-readable     Human readable output format.
+      --interval int       TickerIntervalSeconds (default 5)
+      --lookbehind int     Number of minutes from request time used when fetching
+                           available content. (default 1)
+      --output string      Target where to send audit records.
+                           Available schemes:
+                           file://path/to/file
+                           udp://1.2.3.4:1234
+                           tcp://1.2.3.4:1234
+      --statefile string   File used to read/save state on start/exit.
+
+Global Flags:
+      --config string   config file
+```
 
 ## Roadmap
 Overall
@@ -93,11 +205,11 @@ CLI
 - Start-sub command
   - Add option to provide a webhook object definition
     - `Maybe:` Use viper to load a file containing a webhook schema
-- Watch command
-  - Create JsonHandler
-  - Let user choose which resource handler to use using command line arg
-  - Let user provide additional config based on resource handler, like output target(network, file, etc.)
-  - `Maybe:` Use a sub-sub-command to handle handler logic
+- <strike>Watch command</strike>
+  - <strike>Create JsonHandler</strike>
+  - <strike>Let user choose which resource handler to use using command line arg</strike>
+  - <strike>Let user provide additional config based on resource handler, like output target(network, file, etc.)</strike>
+  - <strike>`Maybe:` Use a sub-sub-command to handle handler logic</strike>
 
 ## Contributing
 > This is my first Go project, and also in conjunction, my first contribution to the open source community, so please feel free to open issues and discuss how you would improve the current code. I am eager to read you and learn from the community. Thanks!</br>`@devodev`
