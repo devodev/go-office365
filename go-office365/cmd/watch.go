@@ -60,50 +60,15 @@ func newCommandWatch() *cobra.Command {
 			}
 
 			// Select output target
-			// TODO: move into setup function
-			filePrefix := "file://"
-			udpPrefix := "udp://"
-			tcpPrefix := "tcp://"
-
-			var writer io.Writer
-			switch {
-			default:
-				logger.Println("output invalid")
+			writer, close, err := setupOutput(ctx, output)
+			if err != nil {
+				logger.Println(err)
 				// ? TODO: Nested exit path
 				return
-			case output == "":
-				writer = defaultOutput
-			case strings.HasPrefix(output, filePrefix):
-				path := output[len(filePrefix):len(output)]
-				f, close, err := openOutputfile(path)
-				if err != nil {
-					logger.Printf("failed to create/open file: %s\n", err)
-					// ? TODO: Nested exit path
-					return
-				}
-				defer close()
-				logger.Printf("using file output: %q\n", path)
-				writer = f
-			case strings.HasPrefix(output, udpPrefix):
-				path := output[len(udpPrefix):len(output)]
-				var d net.Dialer
-				conn, err := d.DialContext(ctx, "udp", path)
-				if err != nil {
-					logger.Printf("Failed to dial udp: %s\n", err)
-					// ? TODO: Nested exit path
-					return
-				}
-				defer conn.Close()
-			case strings.HasPrefix(output, tcpPrefix):
-				path := output[len(tcpPrefix):len(output)]
-				var d net.Dialer
-				conn, err := d.DialContext(ctx, "tcp", path)
-				if err != nil {
-					logger.Printf("Failed to dial tcp: %s\n", err)
-					// ? TODO: Nested exit path
-					return
-				}
-				defer conn.Close()
+			}
+			defer close()
+			if output != "" {
+				logger.Printf("using output: %q\n", output)
 			}
 
 			// Select resource handler
@@ -143,6 +108,54 @@ func getSigChan() chan os.Signal {
 		syscall.SIGTERM,
 		syscall.SIGQUIT)
 	return sigChan
+}
+
+func setupOutput(ctx context.Context, selection string) (io.Writer, func() error, error) {
+	var writer io.Writer
+	var deferred func() error
+
+	filePrefix := "file://"
+	udpPrefix := "udp://"
+	tcpPrefix := "tcp://"
+
+	switch {
+	default:
+		return nil, nil, fmt.Errorf("output invalid")
+	case selection == "":
+		writer = defaultOutput
+		deferred = func() error { return nil }
+	case strings.HasPrefix(selection, filePrefix):
+		path := selection[len(filePrefix):len(selection)]
+		path, err := filepath.Abs(path)
+		if err != nil {
+			return nil, nil, fmt.Errorf("could not get absolute filepath for provided statefile: %s", err)
+		}
+		f, close, err := openOutputfile(path)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to create/open file: %s", err)
+		}
+		writer = f
+		deferred = close
+	case strings.HasPrefix(selection, udpPrefix):
+		path := selection[len(udpPrefix):len(selection)]
+		var d net.Dialer
+		conn, err := d.DialContext(ctx, "udp", path)
+		if err != nil {
+			return nil, nil, fmt.Errorf("Failed to dial udp: %s", err)
+		}
+		writer = conn
+		deferred = conn.Close
+	case strings.HasPrefix(selection, tcpPrefix):
+		path := selection[len(tcpPrefix):len(selection)]
+		var d net.Dialer
+		conn, err := d.DialContext(ctx, "tcp", path)
+		if err != nil {
+			return nil, nil, fmt.Errorf("Failed to dial tcp: %s", err)
+		}
+		writer = conn
+		deferred = conn.Close
+	}
+	return writer, deferred, nil
 }
 
 func openOutputfile(fpath string) (*os.File, func() error, error) {
