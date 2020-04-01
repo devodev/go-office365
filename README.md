@@ -5,6 +5,15 @@
 
 - [Overview](#overview)
 - [Configuration file](#configuration-file)
+- [Usage](#usage)
+- [Commands](#commands)
+  - [Audit](#audit)
+  - [Content](#content)
+  - [Fetch](#fetch)
+  - [Start-sub](#start-sub)
+  - [Stop-sub](#stop-sub)
+  - [Subscriptions](#subscriptions)
+  - [Watch](#watch)
 - [Roadmap](#roadmap)
 - [License](#license)
 
