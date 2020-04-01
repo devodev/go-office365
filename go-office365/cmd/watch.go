@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bytes"
 	"context"
 	"os"
 	"os/signal"
@@ -49,7 +50,21 @@ func newCommandWatch() *cobra.Command {
 				TickerIntervalSeconds: intervalSeconds,
 			}
 
-			state := office365.NewMemoryState()
+			buf := bytes.NewBuffer(nil)
+			state := office365.NewGOBState()
+
+			defer func() {
+				err := state.Write(buf)
+				if err != nil {
+					WriteOut("could not encode state to buffer")
+				}
+			}()
+
+			err := state.Read(buf)
+			if err != nil {
+				WriteOut("could not decode state from buffer")
+			}
+
 			resultChan, err := client.Subscription.Watch(ctx, watcherConf, state)
 			if err != nil {
 				logger.Printf("error occured calling watch: %s\n", err)
