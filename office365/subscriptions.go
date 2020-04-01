@@ -137,7 +137,7 @@ type SubscriptionWatcher struct {
 	queue chan Resource
 
 	// state
-	muContentType   *sync.Mutex
+	muBusy          *sync.Mutex
 	contentTypeBusy map[ContentType]bool
 
 	State
@@ -174,7 +174,7 @@ func NewSubscriptionWatcher(client *Client, conf SubscriptionWatcherConfig, s St
 
 		queue: make(chan Resource, contentTypeCount),
 
-		muContentType:   &sync.Mutex{},
+		muBusy:          &sync.Mutex{},
 		contentTypeBusy: make(map[ContentType]bool),
 		State:           s,
 	}
@@ -190,8 +190,8 @@ func (s *SubscriptionWatcher) sendResourceOrSkip(r Resource) {
 }
 
 func (s *SubscriptionWatcher) isBusy(ct *ContentType) bool {
-	s.muContentType.Lock()
-	defer s.muContentType.Unlock()
+	s.muBusy.Lock()
+	defer s.muBusy.Unlock()
 
 	busy, ok := s.contentTypeBusy[*ct]
 	if !ok {
@@ -202,15 +202,15 @@ func (s *SubscriptionWatcher) isBusy(ct *ContentType) bool {
 }
 
 func (s *SubscriptionWatcher) setBusy(ct *ContentType) {
-	s.muContentType.Lock()
-	defer s.muContentType.Unlock()
+	s.muBusy.Lock()
+	defer s.muBusy.Unlock()
 
 	s.contentTypeBusy[*ct] = true
 }
 
 func (s *SubscriptionWatcher) unsetBusy(ct *ContentType) {
-	s.muContentType.Lock()
-	defer s.muContentType.Unlock()
+	s.muBusy.Lock()
+	defer s.muBusy.Unlock()
 
 	s.contentTypeBusy[*ct] = false
 }
