@@ -106,13 +106,14 @@ func (s *SubscriptionService) Stop(ctx context.Context, ct *ContentType) error {
 // at regular intervals and returns a channel for consuming returned events.
 // The context passed will ensure the channel is closed and any underlying
 // API queries are notified.
-func (s *SubscriptionService) Watch(ctx context.Context, conf SubscriptionWatcherConfig, state State) (<-chan Resource, error) {
+func (s *SubscriptionService) Watch(ctx context.Context, conf SubscriptionWatcherConfig, state State, handler ResourceHandler) error {
 	watcher, err := NewSubscriptionWatcher(s.client, conf, state)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	resourceChan := watcher.Run(ctx)
+	handler.Handle(resourceChan)
 
-	return resourceChan, nil
+	return nil
 }
