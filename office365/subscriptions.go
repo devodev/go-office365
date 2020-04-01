@@ -144,7 +144,6 @@ type SubscriptionWatcher struct {
 
 // SubscriptionWatcherConfig .
 type SubscriptionWatcherConfig struct {
-	FetcherCount          int
 	LookBehindMinutes     int
 	TickerIntervalSeconds int
 }
@@ -152,10 +151,6 @@ type SubscriptionWatcherConfig struct {
 // NewSubscriptionWatcher returns a new watcher that uses the provided client
 // for querying the API.
 func NewSubscriptionWatcher(client *Client, conf SubscriptionWatcherConfig) (*SubscriptionWatcher, error) {
-	if conf.FetcherCount <= 0 {
-		return nil, fmt.Errorf("fetcherCount must be greater than 0")
-	}
-
 	lookBehindDur := time.Duration(conf.LookBehindMinutes) * time.Minute
 	if lookBehindDur <= 0 {
 		return nil, fmt.Errorf("lookBehindMinutes must be greater than 0")
@@ -176,7 +171,7 @@ func NewSubscriptionWatcher(client *Client, conf SubscriptionWatcherConfig) (*Su
 		client: client,
 		config: conf,
 
-		queue: make(chan Resource, conf.FetcherCount),
+		queue: make(chan Resource, contentTypeCount),
 
 		muContentType:      &sync.Mutex{},
 		contentTypeBusy:    make(map[ContentType]bool),
@@ -268,7 +263,7 @@ func (s SubscriptionWatcher) getLastRequestTime(ct *ContentType) time.Time {
 func (s SubscriptionWatcher) Run(ctx context.Context) chan Resource {
 	out := make(chan Resource)
 
-	for i := 0; i < s.config.FetcherCount; i++ {
+	for i := 0; i < contentTypeCount; i++ {
 		go s.fetcher(ctx, out)
 	}
 	go s.generator(ctx)
