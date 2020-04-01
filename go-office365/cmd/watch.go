@@ -21,6 +21,7 @@ func newCommandWatch() *cobra.Command {
 		intervalSeconds   int
 		lookBehindMinutes int
 		statefile         string
+		humanReadable     bool
 		output            string
 	)
 
@@ -58,9 +59,13 @@ func newCommandWatch() *cobra.Command {
 				logger.Printf("using statefile: %q\n", statefileAbs)
 			}
 
-			// printer := office365.NewHumanReadableHandler(defaultOutput)
-			jsonHandler := office365.NewJSONHandler(defaultOutput, logger)
-			if err := client.Subscription.Watch(ctx, watcherConf, state, jsonHandler); err != nil {
+			var handler office365.ResourceHandler
+			if humanReadable {
+				handler = office365.NewHumanReadableHandler(defaultOutput)
+			} else {
+				handler = office365.NewJSONHandler(defaultOutput, logger)
+			}
+			if err := client.Subscription.Watch(ctx, watcherConf, state, handler); err != nil {
 				logger.Printf("error occured calling watch: %s\n", err)
 			}
 		},
@@ -68,6 +73,7 @@ func newCommandWatch() *cobra.Command {
 	cmd.Flags().IntVar(&intervalSeconds, "interval", 5, "TickerIntervalSeconds")
 	cmd.Flags().IntVar(&lookBehindMinutes, "lookbehind", 1, "Number of minutes from request time used when fetching available content.")
 	cmd.Flags().StringVar(&statefile, "statefile", "", "File used to read/save state on start/exit.")
+	cmd.Flags().BoolVar(&humanReadable, "human-readable", false, "Human readable output format.")
 	cmd.Flags().StringVar(&output, "output", "", "Target where to send audit records. Available scheme: file://path/to/file, udp://1.2.3.4:1234, tcp://1.2.3.4:1234")
 
 	return cmd
