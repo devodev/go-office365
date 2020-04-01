@@ -20,6 +20,10 @@ func newCommandWatch() *cobra.Command {
 		lookBehindMinutes int
 	)
 
+	// TODO: we could take a state file as param.
+	// TODO: If param is passed, we should try to
+	// TODO: load state upon starting and write state
+	// TODO: upon closing.
 	cmd := &cobra.Command{
 		Use:   "watch",
 		Short: "Fetch audit events at regular intervals.",
