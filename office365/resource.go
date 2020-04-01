@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"time"
 )
 
@@ -49,20 +50,20 @@ type ResourceHandler interface {
 	Handle(<-chan Resource)
 }
 
-// Printer implements the ResourceHandler interface.
+// HumanReadableHandler implements the ResourceHandler interface.
 // It prints a human readable formatted resource on the
 // provided writer.
-type Printer struct {
+type HumanReadableHandler struct {
 	writer io.Writer
 }
 
-// NewPrinter returns a printer using the provided writer.
-func NewPrinter(w io.Writer) *Printer {
-	return &Printer{w}
+// NewHumanReadableHandler returns a printer using the provided writer.
+func NewHumanReadableHandler(w io.Writer) *HumanReadableHandler {
+	return &HumanReadableHandler{w}
 }
 
 // Handle .
-func (h Printer) Handle(in <-chan Resource) {
+func (h HumanReadableHandler) Handle(in <-chan Resource) {
 	for r := range in {
 		for idx, e := range r.Errors {
 			fmt.Fprintf(h.writer, "[%s] Error%d: %s", r.Request.ContentType, idx, e.Error())
@@ -78,4 +79,45 @@ func (h Printer) Handle(in <-chan Resource) {
 			fmt.Fprintf(h.writer, "[%s]\n%s\n", r.Request.ContentType, out.String())
 		}
 	}
+}
+
+// JSONHandler implements the ResourceHandler interface.
+// It writes json representation of a resource on the provided writer.
+type JSONHandler struct {
+	writer io.Writer
+	logger *log.Logger
+}
+
+// NewJSONHandler returns a JSONHandler using the provided writer.
+func NewJSONHandler(w io.Writer, l *log.Logger) *JSONHandler {
+	return &JSONHandler{writer: w, logger: l}
+}
+
+// Handle .
+func (h JSONHandler) Handle(in <-chan Resource) {
+	for r := range in {
+		for idx, e := range r.Errors {
+			h.logger.Printf("[%s] Error%d: %s", r.Request.ContentType, idx, e.Error())
+		}
+		for _, a := range r.Response.Records {
+			record := &JSONRecord{
+				ContentType: r.Request.ContentType.String(),
+				RequestTime: r.Request.RequestTime,
+				Record:      a,
+			}
+			recordStr, err := json.Marshal(record)
+			if err != nil {
+				h.logger.Printf("error marshalling audit: %s\n", err)
+				continue
+			}
+			fmt.Fprintln(h.writer, string(recordStr))
+		}
+	}
+}
+
+// JSONRecord is used for enriching AuditRecords with Request params.
+type JSONRecord struct {
+	ContentType string
+	RequestTime time.Time
+	Record      AuditRecord
 }
