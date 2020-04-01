@@ -246,6 +246,7 @@ func (s *SubscriptionWatcher) generator(ctx context.Context) {
 	ticker := time.NewTicker(tickerDur)
 	defer ticker.Stop()
 
+	go s.generateResources(ctx, time.Now())
 	for {
 		select {
 		default:
@@ -254,38 +255,40 @@ func (s *SubscriptionWatcher) generator(ctx context.Context) {
 			close(s.queue)
 			return
 		case t := <-ticker.C:
-			go func() {
-				resource := Resource{}
-
-				subscriptions, err := s.client.Subscription.List(ctx)
-				if err != nil {
-					// TODO: could be a good idea to put the errors
-					// TODO: unrelated to a specific contentType audit query
-					// TODO: on the SubscriptionWatcher struct.
-					// TODO: We would also need to return a separate channel in Run
-					// TODO: for sending status/errors to the caller, aside from
-					// TODO: the resource channel.
-					resource.AddError(err)
-					s.sendResourceOrSkip(ctx, resource)
-					return
-				}
-
-				for _, sub := range subscriptions {
-
-					ct, err := GetContentType(sub.ContentType)
-					if err != nil {
-						resource.AddError(err)
-						s.sendResourceOrSkip(ctx, resource)
-						continue
-					}
-					if s.isBusy(ct) {
-						continue
-					}
-					resource.SetRequest(ct, t)
-					s.sendResourceOrSkip(ctx, resource)
-				}
-			}()
+			go s.generateResources(ctx, t)
 		}
+	}
+}
+
+func (s *SubscriptionWatcher) generateResources(ctx context.Context, t time.Time) {
+	resource := Resource{}
+
+	subscriptions, err := s.client.Subscription.List(ctx)
+	if err != nil {
+		// TODO: could be a good idea to put the errors
+		// TODO: unrelated to a specific contentType audit query
+		// TODO: on the SubscriptionWatcher struct.
+		// TODO: We would also need to return a separate channel in Run
+		// TODO: for sending status/errors to the caller, aside from
+		// TODO: the resource channel.
+		resource.AddError(err)
+		s.sendResourceOrSkip(ctx, resource)
+		return
+	}
+
+	for _, sub := range subscriptions {
+
+		ct, err := GetContentType(sub.ContentType)
+		if err != nil {
+			resource.AddError(err)
+			s.sendResourceOrSkip(ctx, resource)
+			continue
+		}
+		if s.isBusy(ct) {
+			continue
+		}
+		resource.SetRequest(ct, t)
+		s.sendResourceOrSkip(ctx, resource)
 	}
 }
 
