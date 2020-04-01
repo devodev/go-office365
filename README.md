@@ -99,5 +99,11 @@ CLI
   - Let user provide additional config based on resource handler, like output target(network, file, etc.)
   - `Maybe:` Use a sub-sub-command to handle handler logic
 
+## Contributing
+> This is my first Go project, and also in conjunction, my first contribution to the open source community, so please feel free to open issues and discuss how you would improve the current code. I am eager to read you and learn from the community. Thanks!</br>`@devodev`
+
+This repository is under heavy development and is subject to change in the near future.</br>
+Versioning will be locked and a proper contributing section will be created in a timely manner, when code is stabilized.</br>
+
 ## License
 `go-office365` is released under the MIT license. See [LICENSE.txt](LICENSE.txt)
