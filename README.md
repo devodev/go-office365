@@ -74,5 +74,21 @@ Overall
 - More documentation
 - More tests
 
+Office365 library
+- Add logger
+
+CLI
+- Add tests
+- Add flag to turn On/Off the verbosity of the logger
+- Add flag to provide file to log to
+- Start-sub command
+  - Add option to provide a webhook object definition
+    - `Maybe:` Use viper to load a file containing a webhook schema
+- Watch command
+  - Create JsonHandler
+  - Let user choose which resource handler to use using command line arg
+  - Let user provide additional config based on resource handler, like output target(network, file, etc.)
+  - `Maybe:` Use a sub-sub-command to handle handler logic
+
 ## License
 go-office365 is released under the MIT license. See [LICENSE.txt](LICENSE.txt)
