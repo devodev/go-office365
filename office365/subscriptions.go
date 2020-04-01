@@ -248,6 +248,8 @@ func (s *SubscriptionWatcher) generator(ctx context.Context) {
 
 	for {
 		select {
+		default:
+			time.Sleep(500 * time.Millisecond)
 		case <-ctx.Done():
 			close(s.queue)
 			return
