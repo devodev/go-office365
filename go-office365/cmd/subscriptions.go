@@ -84,7 +84,7 @@ func newCommandStartSub() *cobra.Command {
 }
 func newCommandStopSub() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "start-sub [content-type]",
+		Use:   "stop-sub [content-type]",
 		Short: "Stop a subscription for the provided Content Type.",
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
