@@ -181,11 +181,13 @@ func NewSubscriptionWatcher(client *Client, conf SubscriptionWatcherConfig, s St
 	return watcher, nil
 }
 
-func (s *SubscriptionWatcher) sendResourceOrSkip(r Resource) {
+func (s *SubscriptionWatcher) sendResourceOrSkip(ctx context.Context, r Resource) {
 	select {
-	case s.queue <- r:
 	default:
 		return
+	case <-ctx.Done():
+		return
+	case s.queue <- r:
 	}
 }
 
@@ -262,7 +264,7 @@ func (s *SubscriptionWatcher) generator(ctx context.Context) {
 					// TODO: for sending status/errors to the caller, aside from
 					// TODO: the resource channel.
 					resource.AddError(err)
-					s.sendResourceOrSkip(resource)
+					s.sendResourceOrSkip(ctx, resource)
 					return
 				}
 
@@ -271,14 +273,14 @@ func (s *SubscriptionWatcher) generator(ctx context.Context) {
 					ct, err := GetContentType(sub.ContentType)
 					if err != nil {
 						resource.AddError(err)
-						s.sendResourceOrSkip(resource)
+						s.sendResourceOrSkip(ctx, resource)
 						continue
 					}
 					if s.isBusy(ct) {
 						continue
 					}
 					resource.SetRequest(ct, t)
-					s.sendResourceOrSkip(resource)
+					s.sendResourceOrSkip(ctx, resource)
 				}
 			}()
 		}
@@ -313,9 +315,14 @@ func (s *SubscriptionWatcher) fetcher(ctx context.Context, out chan Resource) {
 
 		content, err := s.client.Content.List(ctx, r.Request.ContentType, start, end)
 		if err != nil {
-			r.AddError(err)
-			out <- r
-			s.unsetBusy(r.Request.ContentType)
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				r.AddError(err)
+				out <- r
+				s.unsetBusy(r.Request.ContentType)
+			}
 			continue
 		}
 		s.setLastRequestTime(r.Request.ContentType, r.Request.RequestTime)
@@ -343,9 +350,14 @@ func (s *SubscriptionWatcher) fetcher(ctx context.Context, out chan Resource) {
 			}
 			records = append(records, audits...)
 		}
-		r.SetResponse(records)
-		out <- r
-		s.unsetBusy(r.Request.ContentType)
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			r.SetResponse(records)
+			out <- r
+			s.unsetBusy(r.Request.ContentType)
+		}
 	}
 }
 
