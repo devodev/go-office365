@@ -43,6 +43,7 @@ Usage:
 Available Commands:
   audit         Retrieve events and/or actions for the provided audit-id.
   content       List content that is available to be fetched for the provided content-type.
+  content-types List content types accepted by the Microsoft API.
   fetch         Combination of content and audit commands.
   help          Help about any command
   start-sub     Start a subscription for the provided Content Type.
