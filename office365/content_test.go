@@ -127,7 +127,7 @@ func TestContent(t *testing.T) {
 		response := filterStore(&store, contentType, startTime, endTime)
 
 		maxCount := 3
-		nextPage := r.URL.Query().Get("nextPage")
+		nextPage := r.URL.Query().Get("nextpage")
 		if nextPage != "" {
 			pageIndex, _ := strconv.Atoi(nextPage)
 			lastPageIndex := len(response) - maxCount - (len(response) % maxCount)
@@ -136,7 +136,7 @@ func TestContent(t *testing.T) {
 				if pageIndex < lastPageIndex {
 					nextPageURI, _ := url.Parse(r.URL.String())
 					queryParams := nextPageURI.Query()
-					queryParams.Set("nextPage", strconv.Itoa(pageIndex+maxCount))
+					queryParams.Set("nextpage", strconv.Itoa(pageIndex+maxCount))
 					nextPageURI.RawQuery = queryParams.Encode()
 					w.Header().Set("NextPageUri", nextPageURI.String())
 				}
@@ -146,7 +146,7 @@ func TestContent(t *testing.T) {
 
 			nextPageURI, _ := url.Parse(r.URL.String())
 			queryParams := nextPageURI.Query()
-			queryParams.Set("nextPage", strconv.Itoa(maxCount))
+			queryParams.Set("nextpage", strconv.Itoa(maxCount))
 			nextPageURI.RawQuery = queryParams.Encode()
 			w.Header().Set("NextPageUri", nextPageURI.String())
 		}

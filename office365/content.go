@@ -47,15 +47,15 @@ func (s *ContentService) List(ctx context.Context, ct *ContentType, startTime ti
 		if nextPageURIStr == "" {
 			break
 		}
-		nextPageURI, err := url.Parse(nextPageURIStr)
+		nextPageURI, err := url.ParseRequestURI(nextPageURIStr)
 		if err != nil {
 			return nil, err
 		}
-		nextPage := nextPageURI.Query().Get("nextPage")
+		nextPage := nextPageURI.Query().Get("nextpage")
 		if nextPage == "" {
-			return nil, fmt.Errorf("nextPage is not present as queryParam of NextPageUri header")
+			return nil, fmt.Errorf("nextpage is not present as queryParam of NextPageUri header")
 		}
-		params.Set("nextPage", nextPage)
+		params.Set("nextpage", nextPage)
 	}
 	return out, err
 }
