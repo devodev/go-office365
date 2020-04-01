@@ -109,8 +109,8 @@ func (s *SubscriptionService) Stop(ctx context.Context, ct *ContentType) error {
 // at regular intervals and returns a channel for consuming returned events.
 // The context passed will ensure the channel is closed and any underlying
 // API queries are notified upon cancellation.
-func (s *SubscriptionService) Watch(ctx context.Context, conf SubscriptionWatcherConfig) (<-chan Resource, error) {
-	watcher, err := NewSubscriptionWatcher(s.client, conf)
+func (s *SubscriptionService) Watch(ctx context.Context, conf SubscriptionWatcherConfig, state State) (<-chan Resource, error) {
+	watcher, err := NewSubscriptionWatcher(s.client, conf, state)
 	if err != nil {
 		return nil, err
 	}
@@ -136,12 +136,78 @@ type SubscriptionWatcher struct {
 	queue chan Resource
 
 	// state
-	muContentType      *sync.Mutex
-	contentTypeBusy    map[ContentType]bool
+	muContentType   *sync.Mutex
+	contentTypeBusy map[ContentType]bool
+
+	State
+}
+
+// State is an interface for storing and retrieving Watcher state.
+type State interface {
+	setLastContentCreated(*ContentType, time.Time)
+	getLastContentCreated(*ContentType) time.Time
+	setLastRequestTime(*ContentType, time.Time)
+	getLastRequestTime(*ContentType) time.Time
+}
+
+// MemoryState is an in-memory State interface implementation.
+type MemoryState struct {
 	muCreated          *sync.RWMutex
 	lastContentCreated map[ContentType]time.Time
 	muRequest          *sync.RWMutex
 	lastRequestTime    map[ContentType]time.Time
+}
+
+// NewMemoryState returns a new MemoryState.
+func NewMemoryState() *MemoryState {
+	return &MemoryState{
+		muCreated:          &sync.RWMutex{},
+		lastContentCreated: make(map[ContentType]time.Time),
+		muRequest:          &sync.RWMutex{},
+		lastRequestTime:    make(map[ContentType]time.Time),
+	}
+}
+
+func (m *MemoryState) setLastContentCreated(ct *ContentType, t time.Time) {
+	m.muCreated.Lock()
+	defer m.muCreated.Unlock()
+
+	last, ok := m.lastContentCreated[*ct]
+	if !ok || last.Before(t) {
+		m.lastContentCreated[*ct] = t
+	}
+}
+
+func (m *MemoryState) getLastContentCreated(ct *ContentType) time.Time {
+	m.muCreated.RLock()
+	defer m.muCreated.RUnlock()
+
+	t, ok := m.lastContentCreated[*ct]
+	if !ok {
+		return time.Time{}
+	}
+	return t
+}
+
+func (m *MemoryState) setLastRequestTime(ct *ContentType, t time.Time) {
+	m.muRequest.Lock()
+	defer m.muRequest.Unlock()
+
+	last, ok := m.lastRequestTime[*ct]
+	if !ok || last.Before(t) {
+		m.lastRequestTime[*ct] = t
+	}
+}
+
+func (m *MemoryState) getLastRequestTime(ct *ContentType) time.Time {
+	m.muRequest.RLock()
+	defer m.muRequest.RUnlock()
+
+	t, ok := m.lastRequestTime[*ct]
+	if !ok {
+		return time.Time{}
+	}
+	return t
 }
 
 // SubscriptionWatcherConfig .
@@ -152,7 +218,7 @@ type SubscriptionWatcherConfig struct {
 
 // NewSubscriptionWatcher returns a new watcher that uses the provided client
 // for querying the API.
-func NewSubscriptionWatcher(client *Client, conf SubscriptionWatcherConfig) (*SubscriptionWatcher, error) {
+func NewSubscriptionWatcher(client *Client, conf SubscriptionWatcherConfig, s State) (*SubscriptionWatcher, error) {
 	lookBehindDur := time.Duration(conf.LookBehindMinutes) * time.Minute
 	if lookBehindDur <= 0 {
 		return nil, fmt.Errorf("lookBehindMinutes must be greater than 0")
@@ -175,12 +241,9 @@ func NewSubscriptionWatcher(client *Client, conf SubscriptionWatcherConfig) (*Su
 
 		queue: make(chan Resource, contentTypeCount),
 
-		muContentType:      &sync.Mutex{},
-		contentTypeBusy:    make(map[ContentType]bool),
-		muCreated:          &sync.RWMutex{},
-		lastContentCreated: make(map[ContentType]time.Time),
-		muRequest:          &sync.RWMutex{},
-		lastRequestTime:    make(map[ContentType]time.Time),
+		muContentType:   &sync.Mutex{},
+		contentTypeBusy: make(map[ContentType]bool),
+		State:           s,
 	}
 	return watcher, nil
 }
@@ -217,48 +280,6 @@ func (s SubscriptionWatcher) unsetBusy(ct *ContentType) {
 	defer s.muContentType.Unlock()
 
 	s.contentTypeBusy[*ct] = false
-}
-
-func (s SubscriptionWatcher) setLastContentCreated(ct *ContentType, t time.Time) {
-	s.muCreated.Lock()
-	defer s.muCreated.Unlock()
-
-	last, ok := s.lastContentCreated[*ct]
-	if !ok || last.Before(t) {
-		s.lastContentCreated[*ct] = t
-	}
-}
-
-func (s SubscriptionWatcher) getLastContentCreated(ct *ContentType) time.Time {
-	s.muCreated.RLock()
-	defer s.muCreated.RUnlock()
-
-	t, ok := s.lastContentCreated[*ct]
-	if !ok {
-		return time.Time{}
-	}
-	return t
-}
-
-func (s SubscriptionWatcher) setLastRequestTime(ct *ContentType, t time.Time) {
-	s.muRequest.Lock()
-	defer s.muRequest.Unlock()
-
-	last, ok := s.lastRequestTime[*ct]
-	if !ok || last.Before(t) {
-		s.lastRequestTime[*ct] = t
-	}
-}
-
-func (s SubscriptionWatcher) getLastRequestTime(ct *ContentType) time.Time {
-	s.muRequest.RLock()
-	defer s.muRequest.RUnlock()
-
-	t, ok := s.lastRequestTime[*ct]
-	if !ok {
-		return time.Time{}
-	}
-	return t
 }
 
 // Run implements the Watcher interface.

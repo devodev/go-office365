@@ -49,7 +49,8 @@ func newCommandWatch() *cobra.Command {
 				TickerIntervalSeconds: intervalSeconds,
 			}
 
-			resultChan, err := client.Subscription.Watch(ctx, watcherConf)
+			state := office365.NewMemoryState()
+			resultChan, err := client.Subscription.Watch(ctx, watcherConf, state)
 			if err != nil {
 				logger.Printf("error occured calling watch: %s\n", err)
 				return
