@@ -3,6 +3,7 @@ package office365
 import (
 	"bytes"
 	"context"
+	"encoding/gob"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -429,14 +430,56 @@ func NewGOBState() *GOBState {
 	return &GOBState{NewMemoryState()}
 }
 
-// Read will deserialize from a reader and populate its internal state.
-func (g *GOBState) Read(r io.Reader) error {
-	return nil
+func (g *GOBState) createBlob() *GOBStateBlob {
+	g.muCreated.RLock()
+	g.muRequest.RLock()
+	defer g.muCreated.RUnlock()
+	defer g.muRequest.RUnlock()
+
+	return &GOBStateBlob{
+		LastContentCreated: g.lastContentCreated,
+		LastRequestTime:    g.lastRequestTime,
+	}
+}
+
+func (g *GOBState) setFromBlob(b *GOBStateBlob) {
+	g.muCreated.Lock()
+	g.muRequest.Lock()
+	defer g.muCreated.Unlock()
+	defer g.muRequest.Unlock()
+
+	g.lastContentCreated = b.LastContentCreated
+	g.lastRequestTime = b.LastRequestTime
 }
 
 // Read will deserialize from a reader and populate its internal state.
-func (g *GOBState) Write(w io.Writer) error {
+func (g *GOBState) Read(r io.Reader) error {
+	decoder := gob.NewDecoder(r)
+
+	var blob GOBStateBlob
+	if err := decoder.Decode(&blob); err != nil {
+		return err
+	}
+	g.setFromBlob(&blob)
 	return nil
+}
+
+// Write will serialize its internal state and write to a writer.
+func (g *GOBState) Write(w io.Writer) error {
+	encoder := gob.NewEncoder(w)
+
+	blob := g.createBlob()
+	if err := encoder.Encode(&blob); err != nil {
+		return err
+	}
+	return nil
+}
+
+// GOBStateBlob is used to serialize/deserialize MemoryState
+// internal state.
+type GOBStateBlob struct {
+	LastContentCreated map[ContentType]time.Time
+	LastRequestTime    map[ContentType]time.Time
 }
 
 // Resource .
