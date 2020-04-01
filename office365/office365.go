@@ -228,6 +228,16 @@ func GetContentType(s string) (*ContentType, error) {
 	return nil, fmt.Errorf("ContentType invalid")
 }
 
+// GetContentTypes returns the list of ContentType.
+func GetContentTypes() []ContentType {
+	var result []ContentType
+	for idx := range contentTypeLiterals {
+		ct := ContentType(idx)
+		result = append(result, ct)
+	}
+	return result
+}
+
 // ContentTypeValid validates that a string is a valid ContentType.
 func ContentTypeValid(s string) bool {
 	if _, err := GetContentType(s); err != nil {
