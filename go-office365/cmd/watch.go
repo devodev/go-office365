@@ -24,8 +24,8 @@ func newCommandWatch() *cobra.Command {
 		intervalSeconds   int
 		lookBehindMinutes int
 		statefile         string
-		humanReadable     bool
 		output            string
+		humanReadable     bool
 	)
 
 	cmd := &cobra.Command{
@@ -128,8 +128,8 @@ func newCommandWatch() *cobra.Command {
 	cmd.Flags().IntVar(&intervalSeconds, "interval", 5, "TickerIntervalSeconds")
 	cmd.Flags().IntVar(&lookBehindMinutes, "lookbehind", 1, "Number of minutes from request time used when fetching available content.")
 	cmd.Flags().StringVar(&statefile, "statefile", "", "File used to read/save state on start/exit.")
-	cmd.Flags().BoolVar(&humanReadable, "human-readable", false, "Human readable output format.")
 	cmd.Flags().StringVar(&output, "output", "", "Target where to send audit records. Available scheme: file://path/to/file, udp://1.2.3.4:1234, tcp://1.2.3.4:1234")
+	cmd.Flags().BoolVar(&humanReadable, "human-readable", false, "Human readable output format.")
 
 	return cmd
 }
