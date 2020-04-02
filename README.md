@@ -6,22 +6,27 @@
 - [Overview](#overview)
 - [Configuration file](#configuration-file)
 - [Usage](#usage)
-  - [Commands](#commands)
-    - [Audit](#audit)
-    - [Content](#content)
-    - [Content-types](#content-types)
-    - [Fetch](#fetch)
-    - [Start-sub](#start-sub)
-    - [Stop-sub](#stop-sub)
-    - [Subscriptions](#subscriptions)
-    - [Watch](#watch)
 - [Roadmap](#roadmap)
 - [License](#license)
 
 ## Overview
-`go-office365` provides a client library for the `Microsoft Office365 Management Activity API` written in Go. It follows the Microsoft API Reference available [here](https://docs.microsoft.com/en-us/office/office-365-management-api/office-365-management-activity-api-reference).
+`go-office365` provides a client library for the `Microsoft Office365 Management Activity API` written in [Go](https://golang.org/). It follows the Microsoft API Reference available [here](https://docs.microsoft.com/en-us/office/office-365-management-api/office-365-management-activity-api-reference).
 
-`go-office365` is also a CLI application with a ton of useful features.
+`go-office365` is also a CLI application with everything you need to interact with the API remotely.
+
+## Get Started
+`go-office365` uses Go Modules introduced in Go 1.11 for dependency management.
+
+### Build
+Build the CLI for a target platform (Go cross-compiling feature), for example linux, by executing:
+```
+$ mkdir $HOME/src
+$ cd $HOME/src
+$ git clone https://github.com/devodev/go-office365.git
+$ cd go-office365
+$ env GOOS=linux go build -o go_office365_linux ./go-office365
+```
+If you are a Windows user, substitute the $HOME environment variable above with %USERPROFILE%.
 
 ## Configuration file
 > An alternative location can be provided using the `--config` flag.
@@ -44,6 +49,7 @@ Credentials:
 ```
 
 ## Usage
+Auto-generated documentation of commands can be found [here](./go-office365/docs/go-office365.md).
 ```
 Query the Microsoft Office365 Management Activity API.
 
@@ -67,126 +73,6 @@ Flags:
   -v, --version         version for go-office365
 
 Use "go-office365 [command] --help" for more information about a command.
-```
-
-### Commands
-#### audit
-```
-Retrieve events and/or actions for the provided audit-id.
-
-Usage:
-  go-office365 audit [audit-id] [flags]
-
-Flags:
-  -h, --help   help for audit
-
-Global Flags:
-      --config string   config file
-```
-#### content
-```
-List content that is available to be fetched for the provided content-type.
-
-Usage:
-  go-office365 content [content-type] [flags]
-
-Flags:
-      --end string     End time
-  -h, --help           help for content
-      --start string   Start time
-
-Global Flags:
-      --config string   config file
-```
-#### content-types
-```
-List content types accepted by the Microsoft API.
-
-Usage:
-  go-office365 content-types [flags]
-
-Flags:
-  -h, --help   help for content-types
-
-Global Flags:
-      --config string   config file
-```
-#### fetch
-```
-Combination of content and audit commands.
-
-Usage:
-  go-office365 fetch [content-type] [flags]
-
-Flags:
-      --end string     End time
-  -h, --help           help for fetch
-      --start string   Start time
-
-Global Flags:
-      --config string   config file
-```
-#### start-sub
-```
-Start a subscription for the provided Content Type.
-
-Usage:
-  go-office365 start-sub [content-type] [flags]
-
-Flags:
-  -h, --help   help for start-sub
-
-Global Flags:
-      --config string   config file
-```
-#### stop-sub
-```
-Stop a subscription for the provided Content Type.
-
-Usage:
-  go-office365 stop-sub [content-type] [flags]
-
-Flags:
-  -h, --help   help for stop-sub
-
-Global Flags:
-      --config string   config file
-```
-#### subscriptions
-```
-List current subscriptions.
-
-Usage:
-  go-office365 subscriptions [flags]
-
-Flags:
-  -h, --help   help for subscriptions
-
-Global Flags:
-      --config string   config file
-```
-#### watch
-```
-Fetch audit events at regular intervals.
-
-Usage:
-  go-office365 watch [flags]
-
-Flags:
-  -h, --help               help for watch
-      --human-readable     Human readable output format.
-      --interval int       TickerIntervalSeconds (default 5)
-      --lookbehind int     Number of minutes from request time used when fetching
-                           available content. (default 1)
-      --output string      Target where to send audit records.
-                           Available schemes:
-                           file://path/to/file
-                           udp://1.2.3.4:1234
-                           tcp://1.2.3.4:1234
-      --statefile string   File used to read/save state on start/exit.
-
-Global Flags:
-      --config string   config file
 ```
 
 ## Roadmap

@@ -10,9 +10,9 @@ import (
 )
 
 func init() {
-	rootCmd.AddCommand(newCommandListSub())
-	rootCmd.AddCommand(newCommandStartSub())
-	rootCmd.AddCommand(newCommandStopSub())
+	RootCmd.AddCommand(newCommandListSub())
+	RootCmd.AddCommand(newCommandStartSub())
+	RootCmd.AddCommand(newCommandStopSub())
 }
 
 func newCommandListSub() *cobra.Command {

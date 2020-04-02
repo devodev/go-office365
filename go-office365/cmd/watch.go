@@ -16,7 +16,7 @@ import (
 )
 
 func init() {
-	rootCmd.AddCommand(newCommandWatch())
+	RootCmd.AddCommand(newCommandWatch())
 }
 
 func newCommandWatch() *cobra.Command {

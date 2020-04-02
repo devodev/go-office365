@@ -18,7 +18,8 @@ var (
 	loggerOutput  = os.Stderr
 	defaultOutput = os.Stdout
 
-	rootCmd = &cobra.Command{
+	// RootCmd made public so that gendoc can access it.
+	RootCmd = &cobra.Command{
 		Use:     "go-office365",
 		Short:   "Query the Microsoft Office365 Management Activity API.",
 		Long:    "Query the Microsoft Office365 Management Activity API.",
@@ -28,7 +29,7 @@ var (
 
 // Execute executes the root command.
 func Execute() error {
-	return rootCmd.Execute()
+	return RootCmd.Execute()
 }
 
 // WriteOut .
@@ -39,7 +40,7 @@ func WriteOut(line string) {
 func init() {
 	cobra.OnInitialize(initLogging, initConfig)
 
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file")
+	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file")
 }
 
 func initConfig() {

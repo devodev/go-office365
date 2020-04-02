@@ -6,7 +6,7 @@ import (
 )
 
 func init() {
-	rootCmd.AddCommand(newCommandContentType())
+	RootCmd.AddCommand(newCommandContentType())
 }
 
 func newCommandContentType() *cobra.Command {
