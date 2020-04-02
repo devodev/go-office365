@@ -191,16 +191,16 @@ Global Flags:
 
 ## Roadmap
 Overall
-- Better README
+- <strike>Better README</strike>
 - More documentation
 - More tests
 
-Office365 library
-- Add logger
+<strike>Office365 library</strike>
+- <strike>Add logger</strike>
 
 CLI
 - Add tests
-- Add flag to turn On/Off the verbosity of the logger
+- `Wont do:` <strike>Add flag to turn On/Off the verbosity of the logger</strike>
 - Add flag to provide file to log to
 - Start-sub command
   - Add option to provide a webhook object definition
