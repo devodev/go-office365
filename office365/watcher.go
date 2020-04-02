@@ -196,32 +196,7 @@ Outer:
 			s.client.logger.Debug(fmt.Sprintf("[%s] lastRequestTime: %s", r.Request.ContentType, lastRequestTime.String()))
 
 			start := lastRequestTime
-			delta := start.Sub(end)
-			lookbehindDelta := time.Duration(s.config.LookBehindMinutes)
-
-			// ? TODO: it might be cleaner/easier to use if statements
-			switch {
-			case start.IsZero(), start.After(end), delta < lookbehindDelta:
-				// base case
-				// we move the start behind
-				lookBehind := lookbehindDelta * time.Minute
-				start = end.Add(-(lookBehind))
-			case end.Before(r.Request.RequestTime):
-				// we have looped, adjust the end
-				end.Add(intervalOneDay)
-			case delta > intervalOneWeek:
-				// cant query API later than one week in the past
-				// move the interval window behind
-				start = end.Add(-(intervalOneWeek))
-				end = start.Add(intervalOneDay)
-			case delta > intervalOneDay:
-				// cant query API for more than 24 hour interval
-				// we move the end behind
-				end = start.Add(intervalOneDay)
-			}
-			if end.After(r.Request.RequestTime) {
-				end = r.Request.RequestTime
-			}
+			start, end = s.getTimeWindow(r.Request.RequestTime, start, end)
 
 			s.client.logger.Debug(fmt.Sprintf("[%s] fetcher.start: %s", r.Request.ContentType, start.String()))
 			s.client.logger.Debug(fmt.Sprintf("[%s] fetcher.end: %s", r.Request.ContentType, end.String()))
@@ -278,4 +253,36 @@ Outer:
 			s.unsetBusy(r.Request.ContentType)
 		}
 	}
+}
+
+func (s *SubscriptionWatcher) getTimeWindow(requestTime, start, end time.Time) (time.Time, time.Time) {
+	if start.Equal(end) {
+		end = requestTime
+	}
+
+	delta := end.Sub(start)
+	lookbehindDelta := time.Duration(s.config.LookBehindMinutes) * time.Minute
+
+	switch {
+	case start.IsZero(), start.After(end), delta < lookbehindDelta:
+		// base case
+		// we move the start behind
+		start = end.Add(-(lookbehindDelta))
+	case end.Before(requestTime):
+		// we have looped, adjust the end
+		end.Add(intervalOneDay)
+	case delta > intervalOneWeek:
+		// cant query API later than one week in the past
+		// move the interval window behind
+		start = end.Add(-(intervalOneWeek))
+		end = start.Add(intervalOneDay)
+	case delta > intervalOneDay:
+		// cant query API for more than 24 hour interval
+		// we move the end behind
+		end = start.Add(intervalOneDay)
+	}
+	if end.After(requestTime) {
+		end = requestTime
+	}
+	return start, end
 }
