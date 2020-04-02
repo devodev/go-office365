@@ -180,46 +180,75 @@ func (s *SubscriptionWatcher) generateResources(ctx context.Context, t time.Time
 
 // Fetcher .
 func (s *SubscriptionWatcher) fetcher(ctx context.Context, out chan Resource) {
+Outer:
 	for r := range s.queue {
 		s.setBusy(r.Request.ContentType)
 
-		lastRequestTime := s.getLastRequestTime(r.Request.ContentType)
 		lastContentCreated := s.getLastContentCreated(r.Request.ContentType)
-
-		s.client.logger.Debug(fmt.Sprintf("[%s] lastRequestTime: %s", r.Request.ContentType, lastRequestTime.String()))
 		s.client.logger.Debug(fmt.Sprintf("[%s] lastContentCreated: %s", r.Request.ContentType, lastContentCreated.String()))
 
-		start := lastRequestTime
 		end := r.Request.RequestTime
-		delta := start.Sub(r.Request.RequestTime)
-		switch {
-		case start.IsZero(), delta < time.Minute:
-			lookBehind := time.Duration(s.config.LookBehindMinutes) * time.Minute
-			start = r.Request.RequestTime.Add(-(lookBehind))
-		case delta > intervalOneDay:
-			start = r.Request.RequestTime.Add(-(intervalOneDay))
-		}
-
 		s.client.logger.Debug(fmt.Sprintf("[%s] request.RequestTime: %s", r.Request.ContentType, r.Request.RequestTime.String()))
-		s.client.logger.Debug(fmt.Sprintf("[%s] fetcher.start: %s", r.Request.ContentType, start.String()))
-		s.client.logger.Debug(fmt.Sprintf("[%s] fetcher.end: %s", r.Request.ContentType, end.String()))
 
-		content, err := s.client.Content.List(ctx, r.Request.ContentType, start, end)
-		if err != nil {
-			select {
-			case <-ctx.Done():
-				return
-			default:
-				r.AddError(err)
-				out <- r
-				s.unsetBusy(r.Request.ContentType)
+		var finalContent []Content
+		for {
+			lastRequestTime := s.getLastRequestTime(r.Request.ContentType)
+			s.client.logger.Debug(fmt.Sprintf("[%s] lastRequestTime: %s", r.Request.ContentType, lastRequestTime.String()))
+
+			start := lastRequestTime
+			delta := start.Sub(end)
+			lookbehindDelta := time.Duration(s.config.LookBehindMinutes)
+
+			// ? TODO: it might be cleaner/easier to use if statements
+			switch {
+			case start.IsZero(), start.After(end), delta < lookbehindDelta:
+				// base case
+				// we move the start behind
+				lookBehind := lookbehindDelta * time.Minute
+				start = end.Add(-(lookBehind))
+			case end.Before(r.Request.RequestTime):
+				// we have looped, adjust the end
+				end.Add(intervalOneDay)
+			case delta > intervalOneWeek:
+				// cant query API later than one week in the past
+				// move the interval window behind
+				start = end.Add(-(intervalOneWeek))
+				end = start.Add(intervalOneDay)
+			case delta > intervalOneDay:
+				// cant query API for more than 24 hour interval
+				// we move the end behind
+				end = start.Add(intervalOneDay)
 			}
-			continue
+			if end.After(r.Request.RequestTime) {
+				end = r.Request.RequestTime
+			}
+
+			s.client.logger.Debug(fmt.Sprintf("[%s] fetcher.start: %s", r.Request.ContentType, start.String()))
+			s.client.logger.Debug(fmt.Sprintf("[%s] fetcher.end: %s", r.Request.ContentType, end.String()))
+
+			content, err := s.client.Content.List(ctx, r.Request.ContentType, start, end)
+			if err != nil {
+				select {
+				case <-ctx.Done():
+					return
+				default:
+					r.AddError(err)
+					out <- r
+					s.unsetBusy(r.Request.ContentType)
+				}
+				continue Outer
+			}
+			finalContent = append(finalContent, content...)
+
+			s.setLastRequestTime(r.Request.ContentType, end)
+
+			if !end.Before(r.Request.RequestTime) {
+				break
+			}
 		}
-		s.setLastRequestTime(r.Request.ContentType, r.Request.RequestTime)
 
 		var records []AuditRecord
-		for _, c := range content {
+		for _, c := range finalContent {
 			created, err := time.ParseInLocation(CreatedDatetimeFormat, c.ContentCreated, time.Local)
 			if err != nil {
 				r.AddError(err)

@@ -27,7 +27,8 @@ var (
 
 // helpers.
 var (
-	intervalOneDay = time.Minute * 1440
+	intervalOneDay  = time.Minute * 1440
+	intervalOneWeek = intervalOneDay * 7
 )
 
 // service holds a pointer to the Client for service related
