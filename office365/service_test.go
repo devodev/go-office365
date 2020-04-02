@@ -13,7 +13,7 @@ func stubClient() (*Client, *http.ServeMux, func()) {
 	mux := http.NewServeMux()
 	server := httptest.NewServer(mux)
 
-	client := NewClient(nil, "test-tenandID", "")
+	client := NewClient(nil, "test-tenandID", "", nil)
 	url, _ := url.Parse(server.URL + "/")
 	client.BaseURL = url
 

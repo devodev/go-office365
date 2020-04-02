@@ -186,8 +186,8 @@ func (s *SubscriptionWatcher) fetcher(ctx context.Context, out chan Resource) {
 		lastRequestTime := s.getLastRequestTime(r.Request.ContentType)
 		lastContentCreated := s.getLastContentCreated(r.Request.ContentType)
 
-		fmt.Printf("DEBUG: [%s] lastRequestTime: %s\n", r.Request.ContentType, lastRequestTime.String())
-		fmt.Printf("DEBUG: [%s] lastContentCreated: %s\n", r.Request.ContentType, lastContentCreated.String())
+		s.client.logger.Debug(fmt.Sprintf("[%s] lastRequestTime: %s", r.Request.ContentType, lastRequestTime.String()))
+		s.client.logger.Debug(fmt.Sprintf("[%s] lastContentCreated: %s", r.Request.ContentType, lastContentCreated.String()))
 
 		start := lastRequestTime
 		end := r.Request.RequestTime
@@ -200,9 +200,9 @@ func (s *SubscriptionWatcher) fetcher(ctx context.Context, out chan Resource) {
 			start = r.Request.RequestTime.Add(-(intervalOneDay))
 		}
 
-		fmt.Printf("DEBUG: [%s] request.RequestTime: %s\n", r.Request.ContentType, r.Request.RequestTime.String())
-		fmt.Printf("DEBUG: [%s] fetcher.start: %s\n", r.Request.ContentType, start.String())
-		fmt.Printf("DEBUG: [%s] fetcher.end: %s\n", r.Request.ContentType, end.String())
+		s.client.logger.Debug(fmt.Sprintf("[%s] request.RequestTime: %s", r.Request.ContentType, r.Request.RequestTime.String()))
+		s.client.logger.Debug(fmt.Sprintf("[%s] fetcher.start: %s", r.Request.ContentType, start.String()))
+		s.client.logger.Debug(fmt.Sprintf("[%s] fetcher.end: %s", r.Request.ContentType, end.String()))
 
 		content, err := s.client.Content.List(ctx, r.Request.ContentType, start, end)
 		if err != nil {
@@ -225,15 +225,14 @@ func (s *SubscriptionWatcher) fetcher(ctx context.Context, out chan Resource) {
 				r.AddError(err)
 				continue
 			}
-			fmt.Printf("DEBUG: [%s] created: %s\n", r.Request.ContentType, created.String())
-
+			s.client.logger.Debug(fmt.Sprintf("[%s] created: %s", r.Request.ContentType, created.String()))
 			if !created.After(lastContentCreated) {
-				fmt.Printf("DEBUG: [%s] created skipped\n", r.Request.ContentType)
+				s.client.logger.Debug(fmt.Sprintf("[%s] created skipped", r.Request.ContentType))
 				continue
 			}
 			s.setLastContentCreated(r.Request.ContentType, created)
 
-			fmt.Printf("DEBUG: [%s] created fetching..\n", r.Request.ContentType)
+			s.client.logger.Debug(fmt.Sprintf("[%s] created fetching..", r.Request.ContentType))
 			audits, err := s.client.Audit.List(ctx, c.ContentID)
 			if err != nil {
 				r.AddError(err)

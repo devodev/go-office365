@@ -21,7 +21,7 @@ func newCommandListSub() *cobra.Command {
 		Short: "List current subscriptions.",
 		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
-			client := office365.NewClientAuthenticated(&config.Credentials, config.Global.Identifier)
+			client := office365.NewClientAuthenticated(&config.Credentials, config.Global.Identifier, logger)
 			subscriptions, err := client.Subscription.List(context.Background())
 			if err != nil {
 				logger.Printf("error getting subscriptions: %s\n", err)
@@ -62,7 +62,7 @@ func newCommandStartSub() *cobra.Command {
 				return
 			}
 
-			client := office365.NewClientAuthenticated(&config.Credentials, config.Global.Identifier)
+			client := office365.NewClientAuthenticated(&config.Credentials, config.Global.Identifier, logger)
 			subscription, err := client.Subscription.Start(context.Background(), ct, nil)
 			if err != nil {
 				logger.Printf("error getting subscriptions: %s\n", err)
@@ -102,7 +102,7 @@ func newCommandStopSub() *cobra.Command {
 				return
 			}
 
-			client := office365.NewClientAuthenticated(&config.Credentials, config.Global.Identifier)
+			client := office365.NewClientAuthenticated(&config.Credentials, config.Global.Identifier, logger)
 			if err := client.Subscription.Stop(context.Background(), ct); err != nil {
 				logger.Printf("error getting subscriptions: %s\n", err)
 				return

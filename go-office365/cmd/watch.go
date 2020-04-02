@@ -80,7 +80,7 @@ func newCommandWatch() *cobra.Command {
 			}
 
 			// Create client and launch watcher
-			client := office365.NewClientAuthenticated(&config.Credentials, config.Global.Identifier)
+			client := office365.NewClientAuthenticated(&config.Credentials, config.Global.Identifier, logger)
 
 			watcherConf := office365.SubscriptionWatcherConfig{
 				LookBehindMinutes:     lookBehindMinutes,

@@ -42,7 +42,7 @@ func newCommandFetch() *cobra.Command {
 			endTime := parseDate(endTime)
 
 			// Create client
-			client := office365.NewClientAuthenticated(&config.Credentials, config.Global.Identifier)
+			client := office365.NewClientAuthenticated(&config.Credentials, config.Global.Identifier, logger)
 
 			// retrieve content
 			content, err := client.Content.List(context.Background(), ct, startTime, endTime)
