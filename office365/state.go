@@ -1,18 +1,20 @@
 package office365
 
 import (
-	"encoding/gob"
+	"encoding/json"
 	"io"
 	"sync"
 	"time"
 )
 
-// State is an interface for storing and retrieving Watcher state.
+// State is an interface for storinm and retrievinm Watcher state.
 type State interface {
 	setLastContentCreated(*ContentType, time.Time)
 	getLastContentCreated(*ContentType) time.Time
 	setLastRequestTime(*ContentType, time.Time)
 	getLastRequestTime(*ContentType) time.Time
+	Read(io.Reader) error
+	Write(io.Writer) error
 }
 
 // MemoryState is an in-memory State interface implementation.
@@ -75,67 +77,53 @@ func (m *MemoryState) getLastRequestTime(ct *ContentType) time.Time {
 	return t
 }
 
-// GOBState is an in-memory State interface implementation, but
-// also provides Read and Write methods for serializing/deserializing
-// on io.Reader/io.Writer.
-// It uses the encoding/gob package.
-type GOBState struct {
-	*MemoryState
-}
+func (m *MemoryState) returnState() *StateData {
+	m.muCreated.RLock()
+	m.muRequest.RLock()
+	defer m.muCreated.RUnlock()
+	defer m.muRequest.RUnlock()
 
-// NewGOBState returns a new GOBState.
-func NewGOBState() *GOBState {
-	return &GOBState{NewMemoryState()}
-}
-
-func (g *GOBState) createBlob() *GOBStateBlob {
-	g.muCreated.RLock()
-	g.muRequest.RLock()
-	defer g.muCreated.RUnlock()
-	defer g.muRequest.RUnlock()
-
-	return &GOBStateBlob{
-		LastContentCreated: g.lastContentCreated,
-		LastRequestTime:    g.lastRequestTime,
+	return &StateData{
+		LastContentCreated: m.lastContentCreated,
+		LastRequestTime:    m.lastRequestTime,
 	}
 }
 
-func (g *GOBState) setFromBlob(b *GOBStateBlob) {
-	g.muCreated.Lock()
-	g.muRequest.Lock()
-	defer g.muCreated.Unlock()
-	defer g.muRequest.Unlock()
+func (m *MemoryState) setState(b *StateData) {
+	m.muCreated.Lock()
+	m.muRequest.Lock()
+	defer m.muCreated.Unlock()
+	defer m.muRequest.Unlock()
 
-	g.lastContentCreated = b.LastContentCreated
-	g.lastRequestTime = b.LastRequestTime
+	m.lastContentCreated = b.LastContentCreated
+	m.lastRequestTime = b.LastRequestTime
 }
 
-// Read will deserialize from a reader and populate its internal state.
-func (g *GOBState) Read(r io.Reader) error {
-	decoder := gob.NewDecoder(r)
+// Read will decode json from a reader and populate its state.
+func (m *MemoryState) Read(r io.Reader) error {
+	decoder := json.NewDecoder(r)
 
-	var blob GOBStateBlob
+	var blob StateData
 	if err := decoder.Decode(&blob); err != nil {
 		return err
 	}
-	g.setFromBlob(&blob)
+	m.setState(&blob)
 	return nil
 }
 
-// Write will serialize its internal state and write to a writer.
-func (g *GOBState) Write(w io.Writer) error {
-	encoder := gob.NewEncoder(w)
+// Write will encode its state as json to a writer.
+func (m *MemoryState) Write(w io.Writer) error {
+	encoder := json.NewEncoder(w)
 
-	blob := g.createBlob()
+	blob := m.returnState()
 	if err := encoder.Encode(&blob); err != nil {
 		return err
 	}
 	return nil
 }
 
-// GOBStateBlob is used to serialize/deserialize MemoryState
-// internal state.
-type GOBStateBlob struct {
+// StateData holds the internal state of MemoryState.
+type StateData struct {
 	LastContentCreated map[ContentType]time.Time
 	LastRequestTime    map[ContentType]time.Time
 }

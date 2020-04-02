@@ -47,7 +47,7 @@ func newCommandWatch() *cobra.Command {
 			}()
 
 			// Create state instance
-			state := office365.NewGOBState()
+			state := office365.NewMemoryState()
 			if statefile != "" {
 				statefileAbs, writeStateDefer, err := setupStatefile(state, statefile)
 				if err != nil {
@@ -166,7 +166,7 @@ func openOutputfile(fpath string) (*os.File, func() error, error) {
 	return f, f.Close, nil
 }
 
-func setupStatefile(state *office365.GOBState, fpath string) (string, func() error, error) {
+func setupStatefile(state *office365.MemoryState, fpath string) (string, func() error, error) {
 	statefile, err := filepath.Abs(fpath)
 	if err != nil {
 		return "", nil, fmt.Errorf("could not get absolute filepath for provided statefile: %s", err)
@@ -190,7 +190,7 @@ func openStatefile(fpath string) (*os.File, func() error, error) {
 	return f, f.Close, nil
 }
 
-func readState(state *office365.GOBState, fpath string) error {
+func readState(state *office365.MemoryState, fpath string) error {
 	f, close, err := openStatefile(fpath)
 	if err != nil {
 		return err
@@ -204,7 +204,7 @@ func readState(state *office365.GOBState, fpath string) error {
 	return nil
 }
 
-func writeState(state *office365.GOBState, fpath string) error {
+func writeState(state *office365.MemoryState, fpath string) error {
 	f, close, err := openStatefile(fpath)
 	if err != nil {
 		return err
