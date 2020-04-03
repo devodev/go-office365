@@ -69,33 +69,20 @@ Available Commands:
 
 Flags:
       --config string   config file
+      --debug           set log level to DEBUG
   -h, --help            help for go-office365
+      --json            set log formatter to JSON
+      --log string      log file
   -v, --version         version for go-office365
 
 Use "go-office365 [command] --help" for more information about a command.
 ```
 
 ## Roadmap
-Overall
-- <strike>Better README</strike>
-- More documentation
-- More tests
-
-<strike>Office365 library</strike>
-- <strike>Add logger</strike>
-
-CLI
-- Add tests
-- `Wont do:` <strike>Add flag to turn On/Off the verbosity of the logger</strike>
-- Add flag to provide file to log to
+- Watch command
+  - Add documentation
 - Start-sub command
   - Add option to provide a webhook object definition
-    - `Maybe:` Use viper to load a file containing a webhook schema
-- <strike>Watch command</strike>
-  - <strike>Create JsonHandler</strike>
-  - <strike>Let user choose which resource handler to use using command line arg</strike>
-  - <strike>Let user provide additional config based on resource handler, like output target(network, file, etc.)</strike>
-  - <strike>`Maybe:` Use a sub-sub-command to handle handler logic</strike>
 
 ## Contributing
 > This is my first Go project, and also in conjunction, my first contribution to the open source community, so please feel free to open issues and discuss how you would improve the current code. I am eager to read you and learn from the community. Thanks!</br>`@devodev`
