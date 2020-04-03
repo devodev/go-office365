@@ -22,6 +22,7 @@ func init() {
 func newCommandWatch() *cobra.Command {
 	var (
 		intervalSeconds   int
+		refreshMinutes    int
 		lookBehindMinutes int
 		statefile         string
 		output            string
@@ -83,15 +84,17 @@ func newCommandWatch() *cobra.Command {
 			client := office365.NewClientAuthenticated(&config.Credentials, config.Global.Identifier, logger)
 
 			watcherConf := office365.SubscriptionWatcherConfig{
-				LookBehindMinutes:     lookBehindMinutes,
-				TickerIntervalSeconds: intervalSeconds,
+				LookBehindMinutes:      lookBehindMinutes,
+				TickerIntervalSeconds:  intervalSeconds,
+				RefreshIntervalMinutes: refreshMinutes,
 			}
 			if err := client.Subscription.Watch(ctx, watcherConf, state, handler); err != nil {
 				logger.Printf("error occured calling watch: %s\n", err)
 			}
 		},
 	}
-	cmd.Flags().IntVar(&intervalSeconds, "interval", 5, "TickerIntervalSeconds")
+	cmd.Flags().IntVar(&intervalSeconds, "interval", 5, "Interval, in second(s), between API Request.")
+	cmd.Flags().IntVar(&refreshMinutes, "refresh", 1, "Interval, in minute(s), between subscriptions refresh.")
 	cmd.Flags().IntVar(&lookBehindMinutes, "lookbehind", 1, "Number of minutes from request time used when fetching available content.")
 	cmd.Flags().StringVar(&statefile, "statefile", "", "File used to read/save state on start/exit.")
 	cmd.Flags().StringVar(&output, "output", "", "Target where to send audit records. Available schemes: file://path/to/file, udp://1.2.3.4:1234, tcp://1.2.3.4:1234")

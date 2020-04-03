@@ -19,20 +19,17 @@ type SubscriptionWatcher struct {
 	client *Client
 	config SubscriptionWatcherConfig
 
-	// message bus
-	queue chan Resource
-
-	// state
-	muBusy          *sync.Mutex
-	contentTypeBusy map[ContentType]bool
-
 	State
+
+	mu            *sync.Mutex
+	subscriptions map[ContentType]chan Resource
 }
 
 // SubscriptionWatcherConfig .
 type SubscriptionWatcherConfig struct {
-	LookBehindMinutes     int
-	TickerIntervalSeconds int
+	LookBehindMinutes      int
+	TickerIntervalSeconds  int
+	RefreshIntervalMinutes int
 }
 
 // NewSubscriptionWatcher returns a new watcher that uses the provided client
@@ -58,92 +55,54 @@ func NewSubscriptionWatcher(client *Client, conf SubscriptionWatcherConfig, s St
 		client: client,
 		config: conf,
 
-		queue: make(chan Resource, contentTypeCount),
+		State: s,
 
-		muBusy:          &sync.Mutex{},
-		contentTypeBusy: make(map[ContentType]bool),
-		State:           s,
+		mu:            &sync.Mutex{},
+		subscriptions: make(map[ContentType]chan Resource),
 	}
 	return watcher, nil
-}
-
-func (s *SubscriptionWatcher) sendResourceOrSkip(ctx context.Context, r Resource) {
-	select {
-	default:
-		return
-	case <-ctx.Done():
-		return
-	case s.queue <- r:
-	}
-}
-
-func (s *SubscriptionWatcher) isBusy(ct *ContentType) bool {
-	s.muBusy.Lock()
-	defer s.muBusy.Unlock()
-
-	busy, ok := s.contentTypeBusy[*ct]
-	if !ok {
-		busy = false
-		s.contentTypeBusy[*ct] = busy
-	}
-	return busy
-}
-
-func (s *SubscriptionWatcher) setBusy(ct *ContentType) {
-	s.muBusy.Lock()
-	defer s.muBusy.Unlock()
-
-	s.contentTypeBusy[*ct] = true
-}
-
-func (s *SubscriptionWatcher) unsetBusy(ct *ContentType) {
-	s.muBusy.Lock()
-	defer s.muBusy.Unlock()
-
-	s.contentTypeBusy[*ct] = false
 }
 
 // Run implements the Watcher interface.
 func (s *SubscriptionWatcher) Run(ctx context.Context) chan Resource {
 	out := make(chan Resource)
 
-	for i := 0; i < contentTypeCount; i++ {
-		go s.fetcher(ctx, out)
-	}
-	go s.generator(ctx)
-
+	refreshTickerDur := time.Duration(s.config.RefreshIntervalMinutes) * time.Minute
+	refreshTicker := time.NewTicker(refreshTickerDur)
+	defer refreshTicker.Stop()
 	go func() {
 		select {
 		case <-ctx.Done():
-			close(out)
 			return
+		case <-refreshTicker.C:
+			go s.refreshSubscriptions(ctx, out)
+		}
+	}()
+
+	tickerDur := time.Duration(s.config.TickerIntervalSeconds) * time.Second
+	ticker := time.NewTicker(tickerDur)
+	defer ticker.Stop()
+	go func() {
+		select {
+		case <-ctx.Done():
+			return
+		case t := <-ticker.C:
+			go s.generateResources(ctx, t)
 		}
 	}()
 
 	return out
 }
 
-// Generator .
-func (s *SubscriptionWatcher) generator(ctx context.Context) {
-	tickerDur := time.Duration(s.config.TickerIntervalSeconds) * time.Second
-	ticker := time.NewTicker(tickerDur)
-	defer ticker.Stop()
+func (s *SubscriptionWatcher) refreshSubscriptions(ctx context.Context, out chan Resource) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
-	go s.generateResources(ctx, time.Now())
-	for {
-		select {
-		default:
-			time.Sleep(500 * time.Millisecond)
-		case <-ctx.Done():
-			close(s.queue)
-			return
-		case t := <-ticker.C:
-			go s.generateResources(ctx, t)
-		}
+	for ct, ch := range s.subscriptions {
+		close(ch)
+		delete(s.subscriptions, ct)
 	}
-}
 
-func (s *SubscriptionWatcher) generateResources(ctx context.Context, t time.Time) {
 	subscriptions, err := s.client.Subscription.List(ctx)
 	if err != nil {
 		s.client.logger.Printf("error while fetching subscriptions: %s", err)
@@ -153,24 +112,32 @@ func (s *SubscriptionWatcher) generateResources(ctx context.Context, t time.Time
 	for _, sub := range subscriptions {
 		ct, err := GetContentType(sub.ContentType)
 		if err != nil {
-			s.client.logger.Printf("error mapping from received contentType: %s", err)
+			s.client.logger.Printf("error while mapping contentType: %s", err)
 			continue
 		}
-		if s.isBusy(ct) {
-			continue
-		}
-		resource := Resource{}
-		resource.SetRequest(ct, t)
-		s.sendResourceOrSkip(ctx, resource)
+		inResourceChan := make(chan Resource)
+		s.subscriptions[*ct] = inResourceChan
+
+		go s.fetcher(ctx, inResourceChan, out)
 	}
 }
 
-// Fetcher .
-func (s *SubscriptionWatcher) fetcher(ctx context.Context, out chan Resource) {
-Outer:
-	for r := range s.queue {
-		s.setBusy(r.Request.ContentType)
+func (s *SubscriptionWatcher) generateResources(ctx context.Context, t time.Time) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for ct, ch := range s.subscriptions {
+		resource := Resource{}
+		resource.SetRequest(&ct, t)
+		select {
+		default:
+		case ch <- resource:
+		}
+	}
+}
 
+func (s *SubscriptionWatcher) fetcher(ctx context.Context, in, out chan Resource) {
+Outer:
+	for r := range in {
 		lastContentCreated := s.getLastContentCreated(r.Request.ContentType)
 		s.client.logger.Debug(fmt.Sprintf("[%s] lastContentCreated: %s", r.Request.ContentType, lastContentCreated.String()))
 
@@ -196,7 +163,6 @@ Outer:
 				default:
 					r.AddError(err)
 					out <- r
-					s.unsetBusy(r.Request.ContentType)
 				}
 				continue Outer
 			}
@@ -237,7 +203,6 @@ Outer:
 		default:
 			r.SetResponse(records)
 			out <- r
-			s.unsetBusy(r.Request.ContentType)
 		}
 	}
 }
