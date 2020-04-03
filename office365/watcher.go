@@ -26,9 +26,8 @@ type SubscriptionWatcher struct {
 
 // SubscriptionWatcherConfig .
 type SubscriptionWatcherConfig struct {
-	LookBehindMinutes      int
-	TickerIntervalSeconds  int
-	RefreshIntervalMinutes int
+	LookBehindMinutes     int
+	TickerIntervalSeconds int
 }
 
 // NewSubscriptionWatcher returns a new watcher that uses the provided client
