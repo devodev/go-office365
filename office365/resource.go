@@ -97,7 +97,7 @@ func NewJSONHandler(w io.Writer, l *log.Logger) *JSONHandler {
 func (h JSONHandler) Handle(in <-chan Resource) {
 	for r := range in {
 		for idx, e := range r.Errors {
-			h.logger.Printf("[%s] Error%d: %s", r.Request.ContentType, idx, e.Error())
+			h.logger.Printf("[%s] Resource error %d: %s", r.Request.ContentType.String(), idx, e.Error())
 		}
 		for _, a := range r.Response.Records {
 			record := &JSONRecord{
@@ -107,7 +107,7 @@ func (h JSONHandler) Handle(in <-chan Resource) {
 			}
 			recordStr, err := json.Marshal(record)
 			if err != nil {
-				h.logger.Printf("error marshalling audit: %s\n", err)
+				h.logger.Printf("[%s] Marshalling error: %s", r.Request.ContentType.String(), err)
 				continue
 			}
 			fmt.Fprintln(h.writer, string(recordStr))
