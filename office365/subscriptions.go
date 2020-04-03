@@ -112,8 +112,8 @@ func (s *SubscriptionService) Watch(ctx context.Context, conf SubscriptionWatche
 		return err
 	}
 
-	resourceChan := watcher.Run(ctx)
-	handler.Handle(resourceChan)
+	auditsCh := watcher.Run(ctx)
+	handler.Handle(auditsCh)
 
 	return nil
 }
