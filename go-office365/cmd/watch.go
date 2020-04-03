@@ -202,7 +202,7 @@ func readState(state *office365.MemoryState, fpath string) error {
 
 	err = state.Read(f)
 	if err != nil {
-		logger.Info("state empty or invalid. Start fresh!")
+		logger.Info("statefile content empty or invalid, starting fresh!")
 	}
 	return nil
 }
