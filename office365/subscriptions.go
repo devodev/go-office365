@@ -107,13 +107,10 @@ func (s *SubscriptionService) Stop(ctx context.Context, ct *ContentType) error {
 // The context passed will ensure the channel is closed and any underlying
 // API queries are notified.
 func (s *SubscriptionService) Watch(ctx context.Context, conf SubscriptionWatcherConfig, state State, handler ResourceHandler) error {
-	watcher, err := NewSubscriptionWatcher(s.client, conf, state)
+	watcher, err := NewSubscriptionWatcher(s.client, conf, state, handler)
 	if err != nil {
 		return err
 	}
 
-	auditsCh := watcher.Run(ctx)
-	handler.Handle(auditsCh)
-
-	return nil
+	return watcher.Run(ctx)
 }

@@ -52,24 +52,24 @@ func newCommandWatch() *cobra.Command {
 			if statefile != "" {
 				statefileAbs, writeStateDefer, err := setupStatefile(state, statefile)
 				if err != nil {
-					logger.Println(err)
+					logger.Error(err)
 					// ? TODO: Nested exit path
 					return
 				}
 				defer writeStateDefer()
-				logger.Printf("using statefile: %q\n", statefileAbs)
+				logger.Infof("using statefile: %q", statefileAbs)
 			}
 
 			// Select output target
 			writer, close, err := setupOutput(ctx, output)
 			if err != nil {
-				logger.Println(err)
+				logger.Error(err)
 				// ? TODO: Nested exit path
 				return
 			}
 			defer close()
 			if output != "" {
-				logger.Printf("using output: %q\n", output)
+				logger.Infof("using output: %q", output)
 			}
 
 			// Select resource handler
@@ -77,7 +77,7 @@ func newCommandWatch() *cobra.Command {
 			if humanReadable {
 				handler = office365.NewHumanReadableHandler(writer)
 			} else {
-				handler = office365.NewJSONHandler(writer, logger)
+				handler = office365.NewJSONHandler(writer)
 			}
 
 			// Create client and launch watcher
@@ -89,7 +89,7 @@ func newCommandWatch() *cobra.Command {
 				RefreshIntervalMinutes: refreshMinutes,
 			}
 			if err := client.Subscription.Watch(ctx, watcherConf, state, handler); err != nil {
-				logger.Printf("error occured calling watch: %s\n", err)
+				logger.Error(err)
 			}
 		},
 	}
@@ -202,7 +202,7 @@ func readState(state *office365.MemoryState, fpath string) error {
 
 	err = state.Read(f)
 	if err != nil {
-		logger.Println("state empty or invalid. Start fresh!")
+		logger.Info("statefile content empty or invalid, starting fresh!")
 	}
 	return nil
 }

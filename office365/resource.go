@@ -7,11 +7,13 @@ import (
 	"io"
 	"log"
 	"time"
+
+	"github.com/sirupsen/logrus"
 )
 
 // ResourceHandler is an interface for handling streamed resources.
 type ResourceHandler interface {
-	Handle(<-chan ResourceAudits)
+	Handle(<-chan ResourceAudits, *logrus.Logger) error
 }
 
 // HumanReadableHandler implements the ResourceHandler interface.
@@ -27,17 +29,22 @@ func NewHumanReadableHandler(w io.Writer) *HumanReadableHandler {
 }
 
 // Handle .
-func (h HumanReadableHandler) Handle(in <-chan ResourceAudits) {
+func (h HumanReadableHandler) Handle(in <-chan ResourceAudits, l *logrus.Logger) error {
 	for res := range in {
 		auditStr, err := json.Marshal(res.AuditRecord)
 		if err != nil {
-			fmt.Fprintf(h.writer, "error marshalling audit: %s\n", err)
+			l.Errorf("marshalling audit: %s", err)
 			continue
 		}
 		var out bytes.Buffer
-		json.Indent(&out, auditStr, "", "\t")
+		err = json.Indent(&out, auditStr, "", "\t")
+		if err != nil {
+			l.Errorf("indenting json audit: %s", err)
+			continue
+		}
 		fmt.Fprintf(h.writer, "[%s]\n%s\n", res.ContentType.String(), out.String())
 	}
+	return nil
 }
 
 // JSONHandler implements the ResourceHandler interface.
@@ -48,12 +55,12 @@ type JSONHandler struct {
 }
 
 // NewJSONHandler returns a JSONHandler using the provided writer.
-func NewJSONHandler(w io.Writer, l *log.Logger) *JSONHandler {
-	return &JSONHandler{writer: w, logger: l}
+func NewJSONHandler(w io.Writer) *JSONHandler {
+	return &JSONHandler{writer: w}
 }
 
 // Handle .
-func (h JSONHandler) Handle(in <-chan ResourceAudits) {
+func (h JSONHandler) Handle(in <-chan ResourceAudits, l *logrus.Logger) error {
 	for res := range in {
 		record := &JSONRecord{
 			ContentType: res.ContentType.String(),
@@ -62,11 +69,12 @@ func (h JSONHandler) Handle(in <-chan ResourceAudits) {
 		}
 		recordStr, err := json.Marshal(record)
 		if err != nil {
-			h.logger.Printf("marshalling error: %s", err)
+			l.Errorf("marshalling: %s", err)
 			continue
 		}
 		fmt.Fprintln(h.writer, string(recordStr))
 	}
+	return nil
 }
 
 // JSONRecord is used for enriching AuditRecords with Request params.

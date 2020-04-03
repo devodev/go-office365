@@ -2,18 +2,25 @@ package cmd
 
 import (
 	"fmt"
-	"log"
 	"os"
+	"path/filepath"
 
 	"github.com/devodev/go-office365/office365"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
 var (
-	cfgFile string
-	config  Config
-	logger  *log.Logger
+	cfgFile     string
+	logFile     string
+	debug       bool
+	jsonLogging bool
+)
+
+var (
+	config Config
+	logger *logrus.Logger
 
 	loggerOutput  = os.Stderr
 	defaultOutput = os.Stdout
@@ -41,6 +48,9 @@ func init() {
 	cobra.OnInitialize(initLogging, initConfig)
 
 	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file")
+	RootCmd.PersistentFlags().StringVar(&logFile, "log", "", "log file")
+	RootCmd.PersistentFlags().BoolVar(&debug, "debug", false, "set log level to DEBUG")
+	RootCmd.PersistentFlags().BoolVar(&jsonLogging, "json", false, "set log formatter to JSON")
 }
 
 func initConfig() {
@@ -63,7 +73,7 @@ func initConfig() {
 	if err != nil {
 		logger.Fatalln(err)
 	}
-	logger.Println("Using config file:", viper.ConfigFileUsed())
+	logger.Infof("using config file: %s", viper.ConfigFileUsed())
 
 	if err := viper.UnmarshalExact(&config); err != nil {
 		logger.Fatalln(err)
@@ -71,7 +81,31 @@ func initConfig() {
 }
 
 func initLogging() {
-	logger = log.New(loggerOutput, "[go-office365] ", log.Flags())
+	logger = logrus.New()
+	logger.SetFormatter(&logrus.TextFormatter{
+		FullTimestamp:          true,
+		DisableLevelTruncation: true,
+		DisableSorting:         true,
+	})
+	if jsonLogging {
+		logger.SetFormatter(&logrus.JSONFormatter{})
+	}
+	logger.SetLevel(logrus.InfoLevel)
+	if debug {
+		logger.SetLevel(logrus.DebugLevel)
+	}
+	logger.SetOutput(loggerOutput)
+	if logFile != "" {
+		logFile, err := filepath.Abs(logFile)
+		f, err := os.OpenFile(logFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0640)
+		if err != nil {
+			logger.Fatalf("could not use provided logfile: %s", err)
+		}
+		logger.SetOutput(f)
+		RootCmd.PersistentPostRun = func(cmd *cobra.Command, args []string) {
+			f.Close()
+		}
+	}
 }
 
 // Config stores credentials and application

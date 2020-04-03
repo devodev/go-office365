@@ -24,13 +24,13 @@ func newCommandListSub() *cobra.Command {
 			client := office365.NewClientAuthenticated(&config.Credentials, config.Global.Identifier, logger)
 			subscriptions, err := client.Subscription.List(context.Background())
 			if err != nil {
-				logger.Printf("error getting subscriptions: %s\n", err)
+				logger.Errorf("getting subscriptions: %s", err)
 				return
 			}
 			for _, u := range subscriptions {
 				payload, err := json.Marshal(u)
 				if err != nil {
-					logger.Printf("error marshalling subscriptions: %s\n", err)
+					logger.Errorf("marshalling subscriptions: %s", err)
 					continue
 				}
 				var out bytes.Buffer
@@ -53,24 +53,24 @@ func newCommandStartSub() *cobra.Command {
 
 			// validate args
 			if !office365.ContentTypeValid(ctArg) {
-				logger.Println("ContentType invalid")
+				logger.Error("ContentType invalid")
 				return
 			}
 			ct, err := office365.GetContentType(ctArg)
 			if err != nil {
-				logger.Println(err)
+				logger.Error(err)
 				return
 			}
 
 			client := office365.NewClientAuthenticated(&config.Credentials, config.Global.Identifier, logger)
 			subscription, err := client.Subscription.Start(context.Background(), ct, nil)
 			if err != nil {
-				logger.Printf("error getting subscriptions: %s\n", err)
+				logger.Errorf("error getting subscriptions: %s", err)
 				return
 			}
 			payload, err := json.Marshal(subscription)
 			if err != nil {
-				logger.Printf("error marshalling subscription: %s\n", err)
+				logger.Errorf("error marshalling subscription: %s", err)
 				return
 			}
 			var out bytes.Buffer
@@ -93,21 +93,20 @@ func newCommandStopSub() *cobra.Command {
 
 			// validate args
 			if !office365.ContentTypeValid(ctArg) {
-				logger.Println("ContentType invalid")
+				logger.Error("ContentType invalid")
 				return
 			}
 			ct, err := office365.GetContentType(ctArg)
 			if err != nil {
-				logger.Println(err)
+				logger.Error(err)
 				return
 			}
 
 			client := office365.NewClientAuthenticated(&config.Credentials, config.Global.Identifier, logger)
 			if err := client.Subscription.Stop(context.Background(), ct); err != nil {
-				logger.Printf("error getting subscriptions: %s\n", err)
+				logger.Errorf("getting subscriptions: %s\n", err)
 				return
 			}
-
 			WriteOut("subscription successfully stopped")
 		},
 	}
