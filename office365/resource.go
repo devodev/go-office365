@@ -9,45 +9,9 @@ import (
 	"time"
 )
 
-// Resource .
-type Resource struct {
-	Request  ResourceRequest
-	Response ResourceResponse
-	Errors   []error
-}
-
-// AddError .
-func (r *Resource) AddError(err error) {
-	r.Errors = append(r.Errors, err)
-}
-
-// SetRequest .
-func (r *Resource) SetRequest(ct *ContentType, t time.Time) {
-	r.Request = ResourceRequest{
-		ContentType: ct,
-		RequestTime: t,
-	}
-}
-
-// SetResponse .
-func (r *Resource) SetResponse(records []AuditRecord) {
-	r.Response = ResourceResponse{records}
-}
-
-// ResourceRequest .
-type ResourceRequest struct {
-	ContentType *ContentType
-	RequestTime time.Time
-}
-
-// ResourceResponse .
-type ResourceResponse struct {
-	Records []AuditRecord
-}
-
 // ResourceHandler is an interface for handling streamed resources.
 type ResourceHandler interface {
-	Handle(<-chan Resource)
+	Handle(<-chan ResourceAudits)
 }
 
 // HumanReadableHandler implements the ResourceHandler interface.
@@ -63,21 +27,16 @@ func NewHumanReadableHandler(w io.Writer) *HumanReadableHandler {
 }
 
 // Handle .
-func (h HumanReadableHandler) Handle(in <-chan Resource) {
-	for r := range in {
-		for idx, e := range r.Errors {
-			fmt.Fprintf(h.writer, "[%s] Error%d: %s", r.Request.ContentType, idx, e.Error())
+func (h HumanReadableHandler) Handle(in <-chan ResourceAudits) {
+	for res := range in {
+		auditStr, err := json.Marshal(res.AuditRecord)
+		if err != nil {
+			fmt.Fprintf(h.writer, "error marshalling audit: %s\n", err)
+			continue
 		}
-		for _, a := range r.Response.Records {
-			auditStr, err := json.Marshal(a)
-			if err != nil {
-				fmt.Fprintf(h.writer, "error marshalling audit: %s\n", err)
-				continue
-			}
-			var out bytes.Buffer
-			json.Indent(&out, auditStr, "", "\t")
-			fmt.Fprintf(h.writer, "[%s]\n%s\n", r.Request.ContentType, out.String())
-		}
+		var out bytes.Buffer
+		json.Indent(&out, auditStr, "", "\t")
+		fmt.Fprintf(h.writer, "[%s]\n%s\n", res.ContentType.String(), out.String())
 	}
 }
 
@@ -94,24 +53,19 @@ func NewJSONHandler(w io.Writer, l *log.Logger) *JSONHandler {
 }
 
 // Handle .
-func (h JSONHandler) Handle(in <-chan Resource) {
-	for r := range in {
-		for idx, e := range r.Errors {
-			h.logger.Printf("[%s] Error%d: %s", r.Request.ContentType, idx, e.Error())
+func (h JSONHandler) Handle(in <-chan ResourceAudits) {
+	for res := range in {
+		record := &JSONRecord{
+			ContentType: res.ContentType.String(),
+			RequestTime: res.RequestTime,
+			Record:      res.AuditRecord,
 		}
-		for _, a := range r.Response.Records {
-			record := &JSONRecord{
-				ContentType: r.Request.ContentType.String(),
-				RequestTime: r.Request.RequestTime,
-				Record:      a,
-			}
-			recordStr, err := json.Marshal(record)
-			if err != nil {
-				h.logger.Printf("error marshalling audit: %s\n", err)
-				continue
-			}
-			fmt.Fprintln(h.writer, string(recordStr))
+		recordStr, err := json.Marshal(record)
+		if err != nil {
+			h.logger.Printf("marshalling error: %s", err)
+			continue
 		}
+		fmt.Fprintln(h.writer, string(recordStr))
 	}
 }
 
