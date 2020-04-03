@@ -147,32 +147,22 @@ func (s *SubscriptionWatcher) generator(ctx context.Context) {
 }
 
 func (s *SubscriptionWatcher) generateResources(ctx context.Context, t time.Time) {
-	resource := Resource{}
-
 	subscriptions, err := s.client.Subscription.List(ctx)
 	if err != nil {
-		// TODO: could be a good idea to put the errors
-		// TODO: unrelated to a specific contentType audit query
-		// TODO: on the SubscriptionWatcher struct.
-		// TODO: We would also need to return a separate channel in Run
-		// TODO: for sending status/errors to the caller, aside from
-		// TODO: the resource channel.
-		resource.AddError(err)
-		s.sendResourceOrSkip(ctx, resource)
+		s.client.logger.Printf("error while fetching subscriptions: %s", err)
 		return
 	}
 
 	for _, sub := range subscriptions {
-
 		ct, err := GetContentType(sub.ContentType)
 		if err != nil {
-			resource.AddError(err)
-			s.sendResourceOrSkip(ctx, resource)
+			s.client.logger.Printf("error mapping from received contentType: %s", err)
 			continue
 		}
 		if s.isBusy(ct) {
 			continue
 		}
+		resource := Resource{}
 		resource.SetRequest(ct, t)
 		s.sendResourceOrSkip(ctx, resource)
 	}
