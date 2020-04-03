@@ -162,7 +162,7 @@ func setupOutput(ctx context.Context, selection string) (io.Writer, func() error
 }
 
 func openOutputfile(fpath string) (*os.File, func() error, error) {
-	f, err := os.OpenFile(fpath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0755)
+	f, err := os.OpenFile(fpath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0640)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -186,7 +186,7 @@ func setupStatefile(state *office365.MemoryState, fpath string) (string, func() 
 }
 
 func openStatefile(fpath string) (*os.File, func() error, error) {
-	f, err := os.OpenFile(fpath, os.O_RDWR|os.O_CREATE, 0755)
+	f, err := os.OpenFile(fpath, os.O_RDWR|os.O_CREATE, 0640)
 	if err != nil {
 		return nil, nil, err
 	}
