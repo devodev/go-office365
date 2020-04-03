@@ -18,7 +18,6 @@ go-office365 watch [flags]
       --interval int       Interval, in second(s), between API Request. (default 5)
       --lookbehind int     Number of minutes from request time used when fetching available content. (default 1)
       --output string      Target where to send audit records. Available schemes: file://path/to/file, udp://1.2.3.4:1234, tcp://1.2.3.4:1234
-      --refresh int        Interval, in minute(s), between subscriptions refresh. (default 1)
       --statefile string   File used to read/save state on start/exit.
 ```
 
