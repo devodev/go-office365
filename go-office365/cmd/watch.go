@@ -77,7 +77,7 @@ func newCommandWatch() *cobra.Command {
 			if humanReadable {
 				handler = office365.NewHumanReadableHandler(writer)
 			} else {
-				handler = office365.NewJSONHandler(writer, logger)
+				handler = office365.NewJSONHandler(writer)
 			}
 
 			// Create client and launch watcher

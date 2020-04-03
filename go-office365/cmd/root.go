@@ -2,10 +2,10 @@ package cmd
 
 import (
 	"fmt"
-	"log"
 	"os"
 
 	"github.com/devodev/go-office365/office365"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -13,7 +13,7 @@ import (
 var (
 	cfgFile string
 	config  Config
-	logger  *log.Logger
+	logger  logrus.StdLogger
 
 	loggerOutput  = os.Stderr
 	defaultOutput = os.Stdout
@@ -71,7 +71,7 @@ func initConfig() {
 }
 
 func initLogging() {
-	logger = log.New(loggerOutput, "[go-office365] ", log.Flags())
+	logger = logrus.StandardLogger()
 }
 
 // Config stores credentials and application

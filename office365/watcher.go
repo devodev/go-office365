@@ -20,6 +20,7 @@ type SubscriptionWatcher struct {
 	config SubscriptionWatcherConfig
 
 	State
+	Handler ResourceHandler
 }
 
 // SubscriptionWatcherConfig .
@@ -31,7 +32,7 @@ type SubscriptionWatcherConfig struct {
 
 // NewSubscriptionWatcher returns a new watcher that uses the provided client
 // for querying the API.
-func NewSubscriptionWatcher(client *Client, conf SubscriptionWatcherConfig, s State) (*SubscriptionWatcher, error) {
+func NewSubscriptionWatcher(client *Client, conf SubscriptionWatcherConfig, s State, h ResourceHandler) (*SubscriptionWatcher, error) {
 	lookBehindDur := time.Duration(conf.LookBehindMinutes) * time.Minute
 	if lookBehindDur <= 0 {
 		return nil, fmt.Errorf("lookBehindMinutes must be greater than 0")
@@ -53,12 +54,14 @@ func NewSubscriptionWatcher(client *Client, conf SubscriptionWatcherConfig, s St
 		config: conf,
 
 		State: s,
+
+		Handler: h,
 	}
 	return watcher, nil
 }
 
 // Run implements the Watcher interface.
-func (s *SubscriptionWatcher) Run(ctx context.Context) chan ResourceAudits {
+func (s *SubscriptionWatcher) Run(ctx context.Context) error {
 	var wg sync.WaitGroup
 	done := make(chan struct{})
 	out := make(chan ResourceAudits)
@@ -136,7 +139,7 @@ func (s *SubscriptionWatcher) Run(ctx context.Context) chan ResourceAudits {
 		}
 	}()
 
-	return out
+	return s.Handler.Handle(out, s.client.logger)
 }
 
 func (s *SubscriptionWatcher) fetchSubscriptions(ctx context.Context, done chan struct{}, t time.Time) chan ResourceSubscription {
@@ -184,17 +187,17 @@ func (s *SubscriptionWatcher) fetchContent(ctx context.Context, done chan struct
 		defer wg.Done()
 
 		end := sub.RequestTime
-		s.client.logger.Debug(fmt.Sprintf("[%s] request.RequestTime: %s", sub.ContentType, sub.RequestTime.String()))
+		s.client.logger.Printf("[%s] request.RequestTime: %s", sub.ContentType, sub.RequestTime.String())
 
 		for {
 			lastRequestTime := s.getLastRequestTime(sub.ContentType)
-			s.client.logger.Debug(fmt.Sprintf("[%s] lastRequestTime: %s", sub.ContentType, lastRequestTime.String()))
+			s.client.logger.Printf("[%s] lastRequestTime: %s", sub.ContentType, lastRequestTime.String())
 
 			start := lastRequestTime
 			start, end = s.getTimeWindow(sub.RequestTime, start, end)
 
-			s.client.logger.Debug(fmt.Sprintf("[%s] fetcher.start: %s", sub.ContentType, start.String()))
-			s.client.logger.Debug(fmt.Sprintf("[%s] fetcher.end: %s", sub.ContentType, end.String()))
+			s.client.logger.Printf("[%s] fetcher.start: %s", sub.ContentType, start.String())
+			s.client.logger.Printf("[%s] fetcher.end: %s", sub.ContentType, end.String())
 
 			content, err := s.client.Content.List(ctx, sub.ContentType, start, end)
 			if err != nil {
@@ -235,23 +238,22 @@ func (s *SubscriptionWatcher) fetchAudits(ctx context.Context, done chan struct{
 
 		for res := range ch {
 			lastContentCreated := s.getLastContentCreated(res.ContentType)
-			s.client.logger.Debug(fmt.Sprintf("[%s] lastContentCreated: %s", res.ContentType, lastContentCreated.String()))
+			s.client.logger.Printf("[%s] lastContentCreated: %s", res.ContentType, lastContentCreated.String())
 
 			created, err := time.ParseInLocation(CreatedDatetimeFormat, res.Content.ContentCreated, time.Local)
 			if err != nil {
 				s.client.logger.Printf("could not parse ContentCreated for %s: %s", res.ContentType, err)
 				continue
 			}
-			s.client.logger.Debug(fmt.Sprintf("[%s] content found: %s", res.ContentType, created.String()))
+			s.client.logger.Printf("[%s] content found: %s", res.ContentType, created.String())
 			if !created.After(lastContentCreated) {
-				s.client.logger.Debug(
-					fmt.Sprintf("[%s] content skipped: last:%s >= current:%s",
-						res.ContentType, lastContentCreated.String(), created.String()))
+				s.client.logger.Printf("[%s] content skipped: last:%s >= current:%s",
+					res.ContentType, lastContentCreated.String(), created.String())
 				continue
 			}
 			s.setLastContentCreated(res.ContentType, created)
 
-			s.client.logger.Debug(fmt.Sprintf("[%s] content fetching..", res.ContentType))
+			s.client.logger.Printf("[%s] content fetching..", res.ContentType)
 			audits, err := s.client.Audit.List(ctx, res.Content.ContentID)
 			if err != nil {
 				s.client.logger.Printf("could not fetch audits for %s: %s", res.ContentType, err)
