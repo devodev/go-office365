@@ -79,7 +79,11 @@ func initConfig() {
 
 func initLogging() {
 	logger = logrus.New()
-	logger.SetFormatter(&logrus.TextFormatter{FullTimestamp: true})
+	logger.SetFormatter(&logrus.TextFormatter{
+		FullTimestamp:          true,
+		DisableLevelTruncation: true,
+		DisableSorting:         true,
+	})
 	if jsonLogging {
 		logger.SetFormatter(&logrus.JSONFormatter{})
 	}

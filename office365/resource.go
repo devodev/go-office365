@@ -33,13 +33,13 @@ func (h HumanReadableHandler) Handle(in <-chan ResourceAudits, l *logrus.Logger)
 	for res := range in {
 		auditStr, err := json.Marshal(res.AuditRecord)
 		if err != nil {
-			l.Infof("error marshalling audit: %s", err)
+			l.Errorf("marshalling audit: %s", err)
 			continue
 		}
 		var out bytes.Buffer
 		err = json.Indent(&out, auditStr, "", "\t")
 		if err != nil {
-			l.Infof("error indenting json audit: %s", err)
+			l.Errorf("indenting json audit: %s", err)
 			continue
 		}
 		fmt.Fprintf(h.writer, "[%s]\n%s\n", res.ContentType.String(), out.String())
@@ -69,7 +69,7 @@ func (h JSONHandler) Handle(in <-chan ResourceAudits, l *logrus.Logger) error {
 		}
 		recordStr, err := json.Marshal(record)
 		if err != nil {
-			l.Infof("marshalling error: %s", err)
+			l.Errorf("marshalling: %s", err)
 			continue
 		}
 		fmt.Fprintln(h.writer, string(recordStr))
