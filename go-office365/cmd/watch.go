@@ -52,24 +52,24 @@ func newCommandWatch() *cobra.Command {
 			if statefile != "" {
 				statefileAbs, writeStateDefer, err := setupStatefile(state, statefile)
 				if err != nil {
-					logger.Info(err)
+					logger.Error(err)
 					// ? TODO: Nested exit path
 					return
 				}
 				defer writeStateDefer()
-				logger.Infof("using statefile: %q\n", statefileAbs)
+				logger.Infof("using statefile: %q", statefileAbs)
 			}
 
 			// Select output target
 			writer, close, err := setupOutput(ctx, output)
 			if err != nil {
-				logger.Info(err)
+				logger.Error(err)
 				// ? TODO: Nested exit path
 				return
 			}
 			defer close()
 			if output != "" {
-				logger.Infof("using output: %q\n", output)
+				logger.Infof("using output: %q", output)
 			}
 
 			// Select resource handler
@@ -89,7 +89,7 @@ func newCommandWatch() *cobra.Command {
 				RefreshIntervalMinutes: refreshMinutes,
 			}
 			if err := client.Subscription.Watch(ctx, watcherConf, state, handler); err != nil {
-				logger.Infof("error occured calling watch: %s\n", err)
+				logger.Errorf("occured calling watch: %s", err)
 			}
 		},
 	}
@@ -202,7 +202,7 @@ func readState(state *office365.MemoryState, fpath string) error {
 
 	err = state.Read(f)
 	if err != nil {
-		logger.Info("state empty or invalid. Start fresh!")
+		logger.Error("state empty or invalid. Start fresh!")
 	}
 	return nil
 }

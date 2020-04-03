@@ -23,20 +23,20 @@ func newCommandAudit() *cobra.Command {
 
 			// validate args
 			if idArg == "" {
-				logger.Info("audit-id is empty")
+				logger.Error("audit-id is empty")
 				return
 			}
 
 			client := office365.NewClientAuthenticated(&config.Credentials, config.Global.Identifier, logger)
 			audits, err := client.Audit.List(context.Background(), idArg)
 			if err != nil {
-				logger.Infof("error getting audits: %s\n", err)
+				logger.Errorf("getting audits: %s", err)
 				return
 			}
 			for _, u := range audits {
 				userData, err := json.Marshal(u)
 				if err != nil {
-					logger.Infof("error marshalling audits: %s\n", err)
+					logger.Errorf("marshalling audits: %s", err)
 					continue
 				}
 				WriteOut(string(userData))
