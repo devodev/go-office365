@@ -89,7 +89,7 @@ func newCommandWatch() *cobra.Command {
 				RefreshIntervalMinutes: refreshMinutes,
 			}
 			if err := client.Subscription.Watch(ctx, watcherConf, state, handler); err != nil {
-				logger.Errorf("occured calling watch: %s", err)
+				logger.Error(err)
 			}
 		},
 	}
@@ -202,7 +202,7 @@ func readState(state *office365.MemoryState, fpath string) error {
 
 	err = state.Read(f)
 	if err != nil {
-		logger.Error("state empty or invalid. Start fresh!")
+		logger.Info("state empty or invalid. Start fresh!")
 	}
 	return nil
 }
