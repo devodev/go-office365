@@ -113,13 +113,10 @@ func (s *SubscriptionWatcher) Run(ctx context.Context) chan Resource {
 	go s.generator(ctx)
 
 	go func() {
-		for {
-			select {
-			case <-ctx.Done():
-				close(out)
-				return
-			default:
-			}
+		select {
+		case <-ctx.Done():
+			close(out)
+			return
 		}
 	}()
 
