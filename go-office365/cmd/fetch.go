@@ -28,12 +28,12 @@ func newCommandFetch() *cobra.Command {
 
 			// validate args
 			if !office365.ContentTypeValid(ctArg) {
-				logger.Println("ContentType invalid")
+				logger.Info("ContentType invalid")
 				return
 			}
 			ct, err := office365.GetContentType(ctArg)
 			if err != nil {
-				logger.Println(err)
+				logger.Info(err)
 				return
 			}
 
@@ -47,7 +47,7 @@ func newCommandFetch() *cobra.Command {
 			// retrieve content
 			content, err := client.Content.List(context.Background(), ct, startTime, endTime)
 			if err != nil {
-				logger.Printf("error getting content: %s\n", err)
+				logger.Infof("error getting content: %s\n", err)
 				return
 			}
 
@@ -56,7 +56,7 @@ func newCommandFetch() *cobra.Command {
 			for _, c := range content {
 				audits, err := client.Audit.List(context.Background(), c.ContentID)
 				if err != nil {
-					logger.Printf("error getting audits: %s\n", err)
+					logger.Infof("error getting audits: %s\n", err)
 					continue
 				}
 				auditList = append(auditList, audits...)
@@ -66,7 +66,7 @@ func newCommandFetch() *cobra.Command {
 			for _, a := range auditList {
 				auditStr, err := json.Marshal(a)
 				if err != nil {
-					logger.Printf("error marshalling audit: %s\n", err)
+					logger.Infof("error marshalling audit: %s\n", err)
 					continue
 				}
 				WriteOut(string(auditStr))

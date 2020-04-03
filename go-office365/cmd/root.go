@@ -11,9 +11,14 @@ import (
 )
 
 var (
-	cfgFile string
-	config  Config
-	logger  logrus.StdLogger
+	cfgFile     string
+	debug       bool
+	jsonLogging bool
+)
+
+var (
+	config Config
+	logger *logrus.Logger
 
 	loggerOutput  = os.Stderr
 	defaultOutput = os.Stdout
@@ -41,6 +46,8 @@ func init() {
 	cobra.OnInitialize(initLogging, initConfig)
 
 	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file")
+	RootCmd.PersistentFlags().BoolVar(&debug, "debug", false, "set log level to DEBUG")
+	RootCmd.PersistentFlags().BoolVar(&jsonLogging, "json", false, "set log formatter to JSON")
 }
 
 func initConfig() {
@@ -63,7 +70,7 @@ func initConfig() {
 	if err != nil {
 		logger.Fatalln(err)
 	}
-	logger.Println("Using config file:", viper.ConfigFileUsed())
+	logger.Infof("using config file: %s", viper.ConfigFileUsed())
 
 	if err := viper.UnmarshalExact(&config); err != nil {
 		logger.Fatalln(err)
@@ -71,7 +78,15 @@ func initConfig() {
 }
 
 func initLogging() {
-	logger = logrus.StandardLogger()
+	logger = logrus.New()
+	logger.SetFormatter(&logrus.TextFormatter{FullTimestamp: true})
+	if jsonLogging {
+		logger.SetFormatter(&logrus.JSONFormatter{})
+	}
+	logger.SetLevel(logrus.InfoLevel)
+	if debug {
+		logger.SetLevel(logrus.DebugLevel)
+	}
 }
 
 // Config stores credentials and application

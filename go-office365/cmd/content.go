@@ -29,12 +29,12 @@ func newCommandContent() *cobra.Command {
 
 			// validate args
 			if !office365.ContentTypeValid(ctArg) {
-				logger.Println("ContentType invalid")
+				logger.Info("ContentType invalid")
 				return
 			}
 			ct, err := office365.GetContentType(ctArg)
 			if err != nil {
-				logger.Println(err)
+				logger.Info(err)
 				return
 			}
 
@@ -45,13 +45,13 @@ func newCommandContent() *cobra.Command {
 			client := office365.NewClientAuthenticated(&config.Credentials, config.Global.Identifier, logger)
 			content, err := client.Content.List(context.Background(), ct, startTime, endTime)
 			if err != nil {
-				logger.Printf("error getting content: %s\n", err)
+				logger.Infof("error getting content: %s\n", err)
 				return
 			}
 			for _, u := range content {
 				userData, err := json.Marshal(u)
 				if err != nil {
-					logger.Printf("error marshalling content: %s\n", err)
+					logger.Infof("error marshalling content: %s\n", err)
 					continue
 				}
 				WriteOut(string(userData))
