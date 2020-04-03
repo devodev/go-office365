@@ -104,6 +104,24 @@ func (s *SubscriptionWatcher) Run(ctx context.Context) error {
 		ticker := time.NewTicker(tickerDur)
 		defer ticker.Stop()
 
+		fetch := func(t time.Time) {
+			subCh := s.fetchSubscriptions(ctx, done, t)
+			for sub := range subCh {
+				ctLogger := s.client.logger.WithField("content-type", sub.ContentType.String())
+				workerCh, ok := workers[*sub.ContentType]
+				if !ok {
+					ctLogger.Error("no worker registered for content-type")
+					continue
+				}
+				select {
+				default:
+					ctLogger.Warn("worker is busy, skipping")
+				case workerCh <- sub:
+				}
+			}
+		}
+
+		fetch(time.Now())
 		for {
 			select {
 			case <-done:
@@ -113,20 +131,7 @@ func (s *SubscriptionWatcher) Run(ctx context.Context) error {
 				}
 				return
 			case t := <-ticker.C:
-				subCh := s.fetchSubscriptions(ctx, done, t)
-				for sub := range subCh {
-					ctLogger := s.client.logger.WithField("content-type", sub.ContentType.String())
-					workerCh, ok := workers[*sub.ContentType]
-					if !ok {
-						ctLogger.Error("no worker registered for content-type")
-						continue
-					}
-					select {
-					default:
-						ctLogger.Warn("worker is busy, skipping")
-					case workerCh <- sub:
-					}
-				}
+				fetch(t)
 			}
 		}
 	}()
