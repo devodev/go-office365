@@ -107,7 +107,7 @@ func (s *SubscriptionWatcher) Run(ctx context.Context) error {
 			select {
 			case <-done:
 				for ct, workerCh := range workers {
-					s.client.logger.Printf("closing worker for %q", ct.String())
+					s.client.logger.Infof("closing worker for %q", ct.String())
 					close(workerCh)
 				}
 				return
@@ -116,12 +116,12 @@ func (s *SubscriptionWatcher) Run(ctx context.Context) error {
 				for sub := range subCh {
 					workerCh, ok := workers[*sub.ContentType]
 					if !ok {
-						s.client.logger.Printf("no worker available for %q", sub.ContentType.String())
+						s.client.logger.Infof("no worker available for %q", sub.ContentType.String())
 						continue
 					}
 					select {
 					default:
-						s.client.logger.Printf("skipping %q because worker is busy", sub.ContentType.String())
+						s.client.logger.Infof("skipping %q because worker is busy", sub.ContentType.String())
 					case workerCh <- sub:
 					}
 				}
@@ -152,12 +152,12 @@ func (s *SubscriptionWatcher) fetchSubscriptions(ctx context.Context, done chan 
 		subscriptions, err := s.client.Subscription.List(ctx)
 		if err != nil {
 			subscriptions = []Subscription{}
-			s.client.logger.Printf("error fetching subscriptions: %s", err)
+			s.client.logger.Infof("error fetching subscriptions: %s", err)
 		}
 		for _, sub := range subscriptions {
 			ct, err := GetContentType(sub.ContentType)
 			if err != nil {
-				s.client.logger.Printf("error mapping contentType: %s", err)
+				s.client.logger.Infof("error mapping contentType: %s", err)
 				continue
 			}
 			select {
@@ -187,21 +187,21 @@ func (s *SubscriptionWatcher) fetchContent(ctx context.Context, done chan struct
 		defer wg.Done()
 
 		end := sub.RequestTime
-		s.client.logger.Printf("[%s] request.RequestTime: %s", sub.ContentType, sub.RequestTime.String())
+		s.client.logger.Infof("[%s] request.RequestTime: %s", sub.ContentType, sub.RequestTime.String())
 
 		for {
 			lastRequestTime := s.getLastRequestTime(sub.ContentType)
-			s.client.logger.Printf("[%s] lastRequestTime: %s", sub.ContentType, lastRequestTime.String())
+			s.client.logger.Infof("[%s] lastRequestTime: %s", sub.ContentType, lastRequestTime.String())
 
 			start := lastRequestTime
 			start, end = s.getTimeWindow(sub.RequestTime, start, end)
 
-			s.client.logger.Printf("[%s] fetcher.start: %s", sub.ContentType, start.String())
-			s.client.logger.Printf("[%s] fetcher.end: %s", sub.ContentType, end.String())
+			s.client.logger.Infof("[%s] fetcher.start: %s", sub.ContentType, start.String())
+			s.client.logger.Infof("[%s] fetcher.end: %s", sub.ContentType, end.String())
 
 			content, err := s.client.Content.List(ctx, sub.ContentType, start, end)
 			if err != nil {
-				s.client.logger.Printf("could not fetch content for %s: %s", sub.ContentType, err)
+				s.client.logger.Infof("could not fetch content for %s: %s", sub.ContentType, err)
 				return
 			}
 			for _, c := range content {
@@ -238,25 +238,25 @@ func (s *SubscriptionWatcher) fetchAudits(ctx context.Context, done chan struct{
 
 		for res := range ch {
 			lastContentCreated := s.getLastContentCreated(res.ContentType)
-			s.client.logger.Printf("[%s] lastContentCreated: %s", res.ContentType, lastContentCreated.String())
+			s.client.logger.Infof("[%s] lastContentCreated: %s", res.ContentType, lastContentCreated.String())
 
 			created, err := time.ParseInLocation(CreatedDatetimeFormat, res.Content.ContentCreated, time.Local)
 			if err != nil {
-				s.client.logger.Printf("could not parse ContentCreated for %s: %s", res.ContentType, err)
+				s.client.logger.Infof("could not parse ContentCreated for %s: %s", res.ContentType, err)
 				continue
 			}
-			s.client.logger.Printf("[%s] content found: %s", res.ContentType, created.String())
+			s.client.logger.Infof("[%s] content found: %s", res.ContentType, created.String())
 			if !created.After(lastContentCreated) {
-				s.client.logger.Printf("[%s] content skipped: last:%s >= current:%s",
+				s.client.logger.Infof("[%s] content skipped: last:%s >= current:%s",
 					res.ContentType, lastContentCreated.String(), created.String())
 				continue
 			}
 			s.setLastContentCreated(res.ContentType, created)
 
-			s.client.logger.Printf("[%s] content fetching..", res.ContentType)
+			s.client.logger.Infof("[%s] content fetching..", res.ContentType)
 			audits, err := s.client.Audit.List(ctx, res.Content.ContentID)
 			if err != nil {
-				s.client.logger.Printf("could not fetch audits for %s: %s", res.ContentType, err)
+				s.client.logger.Infof("could not fetch audits for %s: %s", res.ContentType, err)
 				continue
 			}
 			for _, a := range audits {

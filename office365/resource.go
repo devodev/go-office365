@@ -13,7 +13,7 @@ import (
 
 // ResourceHandler is an interface for handling streamed resources.
 type ResourceHandler interface {
-	Handle(<-chan ResourceAudits, logrus.StdLogger) error
+	Handle(<-chan ResourceAudits, *logrus.Logger) error
 }
 
 // HumanReadableHandler implements the ResourceHandler interface.
@@ -29,17 +29,17 @@ func NewHumanReadableHandler(w io.Writer) *HumanReadableHandler {
 }
 
 // Handle .
-func (h HumanReadableHandler) Handle(in <-chan ResourceAudits, l logrus.StdLogger) error {
+func (h HumanReadableHandler) Handle(in <-chan ResourceAudits, l *logrus.Logger) error {
 	for res := range in {
 		auditStr, err := json.Marshal(res.AuditRecord)
 		if err != nil {
-			l.Printf("error marshalling audit: %s", err)
+			l.Infof("error marshalling audit: %s", err)
 			continue
 		}
 		var out bytes.Buffer
 		err = json.Indent(&out, auditStr, "", "\t")
 		if err != nil {
-			l.Printf("error indenting json audit: %s", err)
+			l.Infof("error indenting json audit: %s", err)
 			continue
 		}
 		fmt.Fprintf(h.writer, "[%s]\n%s\n", res.ContentType.String(), out.String())
@@ -60,7 +60,7 @@ func NewJSONHandler(w io.Writer) *JSONHandler {
 }
 
 // Handle .
-func (h JSONHandler) Handle(in <-chan ResourceAudits, l logrus.StdLogger) error {
+func (h JSONHandler) Handle(in <-chan ResourceAudits, l *logrus.Logger) error {
 	for res := range in {
 		record := &JSONRecord{
 			ContentType: res.ContentType.String(),
@@ -69,7 +69,7 @@ func (h JSONHandler) Handle(in <-chan ResourceAudits, l logrus.StdLogger) error 
 		}
 		recordStr, err := json.Marshal(record)
 		if err != nil {
-			l.Printf("marshalling error: %s", err)
+			l.Infof("marshalling error: %s", err)
 			continue
 		}
 		fmt.Fprintln(h.writer, string(recordStr))

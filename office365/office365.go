@@ -68,7 +68,7 @@ type Client struct {
 	tenantID      string
 	pubIdentifier string
 
-	logger logrus.StdLogger
+	logger *logrus.Logger
 
 	// inspired by go-github:
 	// https://github.com/google/go-github/blob/d913de9ce1e8ed5550283b448b37b721b61cc3b3/github/github.go#L159
@@ -85,7 +85,7 @@ type Client struct {
 // Note that the default client has no way of authenticating itself against
 // the Microsoft Office365 Management Activity  API.
 // A convenience function is provided just for that: NewClientAuthenticated.
-func NewClient(httpClient *http.Client, tenantID string, pubIdentifier string, l logrus.StdLogger) *Client {
+func NewClient(httpClient *http.Client, tenantID string, pubIdentifier string, l *logrus.Logger) *Client {
 	if httpClient == nil {
 		httpClient = &http.Client{Timeout: defaultTimeout}
 	}
@@ -119,7 +119,7 @@ func (c *Client) Version() string {
 // NewClientAuthenticated returns an authenticated Client.
 // pubIdentifier is used on Microsoft side to group queries
 // together in terms of quotas and limitations.
-func NewClientAuthenticated(c *Credentials, pubIdentifier string, l logrus.StdLogger) *Client {
+func NewClientAuthenticated(c *Credentials, pubIdentifier string, l *logrus.Logger) *Client {
 	oauthClient := OAuthClient(context.Background(), c)
 	return NewClient(oauthClient, c.TenantID, pubIdentifier, l)
 }
