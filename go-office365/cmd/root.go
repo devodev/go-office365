@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/devodev/go-office365/office365"
 	"github.com/sirupsen/logrus"
@@ -12,6 +13,7 @@ import (
 
 var (
 	cfgFile     string
+	logFile     string
 	debug       bool
 	jsonLogging bool
 )
@@ -46,6 +48,7 @@ func init() {
 	cobra.OnInitialize(initLogging, initConfig)
 
 	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file")
+	RootCmd.PersistentFlags().StringVar(&logFile, "log", "", "log file")
 	RootCmd.PersistentFlags().BoolVar(&debug, "debug", false, "set log level to DEBUG")
 	RootCmd.PersistentFlags().BoolVar(&jsonLogging, "json", false, "set log formatter to JSON")
 }
@@ -90,6 +93,18 @@ func initLogging() {
 	logger.SetLevel(logrus.InfoLevel)
 	if debug {
 		logger.SetLevel(logrus.DebugLevel)
+	}
+	logger.SetOutput(loggerOutput)
+	if logFile != "" {
+		logFile, err := filepath.Abs(logFile)
+		f, err := os.OpenFile(logFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0640)
+		if err != nil {
+			logger.Fatalf("could not use provided logfile: %s", err)
+		}
+		logger.SetOutput(f)
+		RootCmd.PersistentPostRun = func(cmd *cobra.Command, args []string) {
+			f.Close()
+		}
 	}
 }
 
