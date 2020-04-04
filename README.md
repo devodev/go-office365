@@ -1,6 +1,11 @@
 # go-office365
 `go-office365` provides both a client library as well as a CLI tool to interact with the `Microsoft Office365 Management Activity API`.
 
+![GitHub tag (latest SemVer)](https://img.shields.io/github/v/tag/devodev/go-office365?sort=semver)
+![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/devodev/go-office365)
+[![Go Report Card](https://goreportcard.com/badge/github.com/devodev/go-office365)](https://goreportcard.com/report/github.com/devodev/go-office365)
+[![GitHub license](https://img.shields.io/github/license/devodev/go-office365?style=flat)](https://github.com/devodev/go-office365/blob/master/LICENSE.txt)
+
 ## Table of Contents
 
 - [Overview](#overview)
