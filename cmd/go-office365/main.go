@@ -17,17 +17,6 @@ var (
 // Execute executes the root command.
 func Execute() error {
 	rootCmd := newCommandRoot()
-	rootCmd.AddCommand(
-		newCommandAudit(),
-		newCommandContent(),
-		newCommandContentType(),
-		newCommandFetch(),
-		newCommandGenDoc(),
-		newCommandListSub(),
-		newCommandStartSub(),
-		newCommandStopSub(),
-		newCommandWatch(),
-	)
 	return rootCmd.Execute()
 }
 
@@ -42,6 +31,17 @@ func newCommandRoot() *cobra.Command {
 		Long:    "Query the Microsoft Office365 Management Activity API.",
 		Version: "0.1.0-alpha.1",
 	}
+	cmd.AddCommand(
+		newCommandAudit(),
+		newCommandContent(),
+		newCommandContentType(),
+		newCommandFetch(),
+		newCommandGenDoc(),
+		newCommandListSub(),
+		newCommandStartSub(),
+		newCommandStopSub(),
+		newCommandWatch(),
+	)
 	return cmd
 }
 
