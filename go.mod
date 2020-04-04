@@ -1,4 +1,4 @@
-module github.com/devodev/go-office365
+module github.com/devodev/go-office365/v0
 
 go 1.13
 

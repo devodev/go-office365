@@ -4,7 +4,7 @@ import (
 	"log"
 	"path/filepath"
 
-	"github.com/devodev/go-office365/go-office365/cmd"
+	"github.com/devodev/go-office365/v0/go-office365/cmd"
 	"github.com/spf13/cobra/doc"
 )
 

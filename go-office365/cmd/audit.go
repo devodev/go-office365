@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/devodev/go-office365/office365"
+	"github.com/devodev/go-office365/v0/office365"
 	"github.com/spf13/cobra"
 )
 
