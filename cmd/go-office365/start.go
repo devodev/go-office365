@@ -54,6 +54,7 @@ func newCommandStartSub() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&cfgFile, "config", "", "config file")
+	cmd.Flags().StringVar(&cfgFile, "config", "", "Set configfile alternate location. Defaults are [$HOME/.go-office365.yaml, $CWD/.go-office365.yaml].")
+	cmd.Flags().SortFlags = false
 	return cmd
 }

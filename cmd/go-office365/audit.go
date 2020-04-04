@@ -16,7 +16,7 @@ func newCommandAudit() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "audit [audit-id]",
-		Short: "Retrieve events and/or actions for the provided audit-id.",
+		Short: "Query audit records for the provided audit-id.",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// command line args
@@ -47,6 +47,7 @@ func newCommandAudit() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&cfgFile, "config", "", "config file")
+	cmd.Flags().StringVar(&cfgFile, "config", "", "Set configfile alternate location. Defaults are [$HOME/.go-office365.yaml, $CWD/.go-office365.yaml].")
+	cmd.Flags().SortFlags = false
 	return cmd
 }

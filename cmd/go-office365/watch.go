@@ -23,23 +23,24 @@ var (
 
 func newCommandWatch() *cobra.Command {
 	var (
-		logFile string
-		cfgFile string
+		logFile   string
+		cfgFile   string
+		stateFile string
 
 		intervalSeconds   int
 		lookBehindMinutes int
-		statefile         string
 		output            string
-		humanReadable     bool
+		indent            bool
 		debug             bool
 		jsonLogging       bool
 	)
 
 	cmd := &cobra.Command{
 		Use:   "watch",
-		Short: "Fetch audit events at regular intervals.",
+		Short: "Query audit records at regular intervals.",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			// init logger and config
 			logger, err := initLogger(cmd, logFile, debug, jsonLogging)
 			if err != nil {
 				return err
@@ -49,7 +50,7 @@ func newCommandWatch() *cobra.Command {
 				return err
 			}
 
-			// create cancelling context based on signals
+			// create cancelling context using signals
 			ctx, cancel := context.WithCancel(context.Background())
 			go func() {
 				sigChan := getSigChan()
@@ -62,10 +63,10 @@ func newCommandWatch() *cobra.Command {
 				}
 			}()
 
-			// Create state instance
+			// create state instance
 			state := office365.NewMemoryState()
-			if statefile != "" {
-				statefileAbs, writeStateDefer, err := setupStatefile(state, statefile)
+			if stateFile != "" {
+				statefileAbs, writeStateDefer, err := setupStatefile(state, stateFile)
 				if err != nil {
 					if err != errInvalidStatefile {
 						return err
@@ -76,7 +77,7 @@ func newCommandWatch() *cobra.Command {
 				logger.Infof("using statefile: %s", statefileAbs)
 			}
 
-			// Select output target
+			// setup output target
 			writer, close, err := setupOutput(ctx, output)
 			if err != nil {
 				return err
@@ -86,22 +87,14 @@ func newCommandWatch() *cobra.Command {
 				logger.Infof("using output: %s", output)
 			}
 
-			// Select resource handler
-			var handler office365.ResourceHandler
-			if humanReadable {
-				handler = office365.NewHumanReadableHandler(writer)
-			} else {
-				handler = office365.NewJSONHandler(writer)
-			}
-
-			// Create client and launch watcher
+			// create watcher and start it
 			client := office365.NewClientAuthenticated(&config.Credentials, config.Global.Identifier)
+			handler := office365.NewJSONHandler(writer, logger, indent)
 
 			watcherConf := office365.SubscriptionWatcherConfig{
 				LookBehindMinutes:     lookBehindMinutes,
 				TickerIntervalSeconds: intervalSeconds,
 			}
-
 			watcher, err := office365.NewSubscriptionWatcher(client, watcherConf, state, handler, logger)
 			if err != nil {
 				return err
@@ -109,16 +102,18 @@ func newCommandWatch() *cobra.Command {
 			return watcher.Run(ctx)
 		},
 	}
-	cmd.Flags().StringVar(&logFile, "log", "", "log file")
-	cmd.Flags().StringVar(&cfgFile, "config", "", "config file")
+	cmd.Flags().StringVar(&cfgFile, "config", "", "Set configfile alternate location. Defaults are [$HOME/.go-office365.yaml, $CWD/.go-office365.yaml].")
 
-	cmd.Flags().IntVar(&intervalSeconds, "interval", 5, "Interval, in second(s), between API Request.")
-	cmd.Flags().IntVar(&lookBehindMinutes, "lookbehind", 1, "Number of minutes from request time used when fetching available content.")
-	cmd.Flags().StringVar(&statefile, "statefile", "", "File used to read/save state on start/exit.")
-	cmd.Flags().StringVar(&output, "output", "", "Target where to send audit records. Available schemes: file://path/to/file, udp://1.2.3.4:1234, tcp://1.2.3.4:1234")
-	cmd.Flags().BoolVar(&humanReadable, "human-readable", false, "Human readable output format.")
-	cmd.Flags().BoolVar(&debug, "debug", false, "set log level to DEBUG")
-	cmd.Flags().BoolVar(&jsonLogging, "json", false, "set log formatter to JSON")
+	cmd.Flags().StringVar(&logFile, "log", "", "Set logging output to provided file. Default is stderr.")
+	cmd.Flags().StringVar(&stateFile, "state", "", "Set state output to provided file. Default is to not persist state.")
+	cmd.Flags().StringVar(&output, "output", "", "Set records output. Available schemes: file://path/to/file, udp://1.2.3.4:1234, tcp://1.2.3.4:1234")
+
+	cmd.Flags().IntVar(&intervalSeconds, "interval", 5, "Ticker interval used to trigger fetch pipelines, in second(s).")
+	cmd.Flags().IntVar(&lookBehindMinutes, "lookbehind", 1, "Minimum interval used by fetch actions, in minute(s).")
+	cmd.Flags().BoolVar(&indent, "indent", false, "Set records output to be indented.")
+	cmd.Flags().BoolVar(&debug, "debug", false, "Set log level to DEBUG.")
+	cmd.Flags().BoolVar(&jsonLogging, "json", false, "Set log formatter to JSON.")
+	cmd.Flags().SortFlags = false
 	return cmd
 }
 

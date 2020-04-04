@@ -33,5 +33,6 @@ func newCommandGenDoc() *cobra.Command {
 		},
 	}
 	cmd.Flags().StringVar(&dir, "dir", "./docs", "directory where to write the doc.")
+	cmd.Flags().SortFlags = false
 	return cmd
 }

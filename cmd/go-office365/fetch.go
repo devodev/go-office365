@@ -18,7 +18,8 @@ func newCommandFetch() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "fetch [content-type]",
-		Short: "Combination of content and audit commands.",
+		Short: "Query audit records for the provided content-type.",
+		Long:  fmt.Sprintf("Query audit records for the provided content-type.\n%s\n", timeArgsDescription),
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// command line args
@@ -72,8 +73,9 @@ func newCommandFetch() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&cfgFile, "config", "", "config file")
-	cmd.Flags().StringVar(&startTime, "start", "", "Start time")
-	cmd.Flags().StringVar(&endTime, "end", "", "End time")
+	cmd.Flags().StringVar(&cfgFile, "config", "", "Set configfile alternate location. Defaults are [$HOME/.go-office365.yaml, $CWD/.go-office365.yaml].")
+	cmd.Flags().StringVar(&startTime, "start", "", "Start time.")
+	cmd.Flags().StringVar(&endTime, "end", "", "End time.")
+	cmd.Flags().SortFlags = false
 	return cmd
 }
