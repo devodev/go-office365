@@ -67,6 +67,7 @@ Available Commands:
   content       List content that is available to be fetched for the provided content-type.
   content-types List content types accepted by the Microsoft API.
   fetch         Combination of content and audit commands.
+  gendoc        Generate markdown documentation for the go-office365 CLI.
   help          Help about any command
   start-sub     Start a subscription for the provided Content Type.
   stop-sub      Stop a subscription for the provided Content Type.
@@ -74,12 +75,8 @@ Available Commands:
   watch         Fetch audit events at regular intervals.
 
 Flags:
-      --config string   config file
-      --debug           set log level to DEBUG
-  -h, --help            help for go-office365
-      --json            set log formatter to JSON
-      --log string      log file
-  -v, --version         version for go-office365
+  -h, --help      help for go-office365
+  -v, --version   version for go-office365
 
 Use "go-office365 [command] --help" for more information about a command.
 ```
