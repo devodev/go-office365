@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"sync"
 	"time"
+
+	"github.com/sirupsen/logrus"
 )
 
 // Watcher is an interface used by Watch for generating a stream of records.
@@ -19,6 +21,7 @@ type Watcher interface {
 type SubscriptionWatcher struct {
 	client *Client
 	config SubscriptionWatcherConfig
+	logger *logrus.Logger
 
 	State
 	Handler ResourceHandler
@@ -32,7 +35,7 @@ type SubscriptionWatcherConfig struct {
 
 // NewSubscriptionWatcher returns a new watcher that uses the provided client
 // for querying the API.
-func NewSubscriptionWatcher(client *Client, conf SubscriptionWatcherConfig, s State, h ResourceHandler) (*SubscriptionWatcher, error) {
+func NewSubscriptionWatcher(client *Client, conf SubscriptionWatcherConfig, s State, h ResourceHandler, l *logrus.Logger) (*SubscriptionWatcher, error) {
 	lookBehindDur := time.Duration(conf.LookBehindMinutes) * time.Minute
 	if lookBehindDur <= 0 {
 		return nil, fmt.Errorf("lookBehindMinutes must be greater than 0")
@@ -52,6 +55,7 @@ func NewSubscriptionWatcher(client *Client, conf SubscriptionWatcherConfig, s St
 	watcher := &SubscriptionWatcher{
 		client: client,
 		config: conf,
+		logger: l,
 
 		State:   s,
 		Handler: h,
@@ -72,7 +76,7 @@ func (s *SubscriptionWatcher) Run(ctx context.Context) error {
 
 	wg.Add(len(contentTypes))
 	for _, ct := range contentTypes {
-		s.client.logger.WithField("content-type", ct.String()).Info("starting worker")
+		s.logger.WithField("content-type", ct.String()).Info("starting worker")
 		ch := make(chan ResourceSubscription, 1)
 		workers[ct] = ch
 
@@ -106,7 +110,7 @@ func (s *SubscriptionWatcher) Run(ctx context.Context) error {
 		fetch := func(t time.Time) {
 			subCh := s.fetchSubscriptions(ctx, done, t)
 			for sub := range subCh {
-				ctLogger := s.client.logger.WithField("content-type", sub.ContentType.String())
+				ctLogger := s.logger.WithField("content-type", sub.ContentType.String())
 				workerCh, ok := workers[*sub.ContentType]
 				if !ok {
 					ctLogger.Error("no worker registered for content-type")
@@ -125,7 +129,7 @@ func (s *SubscriptionWatcher) Run(ctx context.Context) error {
 			select {
 			case <-done:
 				for ct, workerCh := range workers {
-					s.client.logger.WithField("content-type", ct.String()).Info("closing worker")
+					s.logger.WithField("content-type", ct.String()).Info("closing worker")
 					close(workerCh)
 				}
 				return
@@ -145,7 +149,7 @@ func (s *SubscriptionWatcher) Run(ctx context.Context) error {
 		}
 	}()
 
-	return s.Handler.Handle(out, s.client.logger)
+	return s.Handler.Handle(out)
 }
 
 func (s *SubscriptionWatcher) fetchSubscriptions(ctx context.Context, done chan struct{}, t time.Time) chan ResourceSubscription {
@@ -159,13 +163,13 @@ func (s *SubscriptionWatcher) fetchSubscriptions(ctx context.Context, done chan 
 		if err != nil {
 			subscriptions = []Subscription{}
 			if !errors.Is(err, context.Canceled) {
-				s.client.logger.Errorf("fetching subscriptions: %s", err)
+				s.logger.Errorf("fetching subscriptions: %s", err)
 			}
 		}
 		for _, sub := range subscriptions {
 			ct, err := GetContentType(sub.ContentType)
 			if err != nil {
-				s.client.logger.Errorf("mapping contentType: %s", err)
+				s.logger.Errorf("mapping contentType: %s", err)
 				continue
 			}
 			select {
@@ -194,7 +198,7 @@ func (s *SubscriptionWatcher) fetchContent(ctx context.Context, done chan struct
 	output := func(sub ResourceSubscription) {
 		defer wg.Done()
 
-		ctLogger := s.client.logger.WithField("content-type", sub.ContentType.String())
+		ctLogger := s.logger.WithField("content-type", sub.ContentType.String())
 
 		end := sub.RequestTime
 		ctLogger.Debugf("request.RequestTime: %s", sub.RequestTime.String())
@@ -249,7 +253,7 @@ func (s *SubscriptionWatcher) fetchAudits(ctx context.Context, done chan struct{
 		defer wg.Done()
 
 		for res := range ch {
-			ctLogger := s.client.logger.WithField("content-type", res.ContentType.String())
+			ctLogger := s.logger.WithField("content-type", res.ContentType.String())
 
 			lastContentCreated := s.getLastContentCreated(res.ContentType)
 			ctLogger.Debugf("lastContentCreated: %s", lastContentCreated.String())

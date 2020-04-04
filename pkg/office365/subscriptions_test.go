@@ -32,7 +32,7 @@ func TestList(t *testing.T) {
 	}
 
 	want := []Subscription{
-		Subscription{
+		{
 			ContentType: "test",
 			Status:      "test",
 			Webhook:     nil,
