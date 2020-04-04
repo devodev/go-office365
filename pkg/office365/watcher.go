@@ -149,7 +149,7 @@ func (s *SubscriptionWatcher) Run(ctx context.Context) error {
 		}
 	}()
 
-	return s.Handler.Handle(out, s.logger)
+	return s.Handler.Handle(out)
 }
 
 func (s *SubscriptionWatcher) fetchSubscriptions(ctx context.Context, done chan struct{}, t time.Time) chan ResourceSubscription {

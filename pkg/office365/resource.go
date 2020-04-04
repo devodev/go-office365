@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -13,54 +12,24 @@ import (
 
 // ResourceHandler is an interface for handling streamed resources.
 type ResourceHandler interface {
-	Handle(<-chan ResourceAudits, *logrus.Logger) error
-}
-
-// HumanReadableHandler implements the ResourceHandler interface.
-// It prints a human readable formatted resource on the
-// provided writer.
-type HumanReadableHandler struct {
-	writer io.Writer
-}
-
-// NewHumanReadableHandler returns a printer using the provided writer.
-func NewHumanReadableHandler(w io.Writer) *HumanReadableHandler {
-	return &HumanReadableHandler{w}
-}
-
-// Handle .
-func (h HumanReadableHandler) Handle(in <-chan ResourceAudits, l *logrus.Logger) error {
-	for res := range in {
-		auditStr, err := json.Marshal(res.AuditRecord)
-		if err != nil {
-			l.Errorf("marshalling audit: %s", err)
-			continue
-		}
-		var out bytes.Buffer
-		err = json.Indent(&out, auditStr, "", "\t")
-		if err != nil {
-			l.Errorf("indenting json audit: %s", err)
-			continue
-		}
-		fmt.Fprintf(h.writer, "[%s]\n%s\n", res.ContentType.String(), out.String())
-	}
-	return nil
+	Handle(<-chan ResourceAudits) error
 }
 
 // JSONHandler implements the ResourceHandler interface.
 // It writes json representation of a resource on the provided writer.
 type JSONHandler struct {
 	writer io.Writer
-	logger *log.Logger
+	logger *logrus.Logger
+	indent bool
 }
 
 // NewJSONHandler returns a JSONHandler using the provided writer.
-func NewJSONHandler(w io.Writer) *JSONHandler {
-	return &JSONHandler{writer: w}
+func NewJSONHandler(w io.Writer, l *logrus.Logger, indent bool) *JSONHandler {
+	return &JSONHandler{w, l, indent}
 }
 
 // Handle .
-func (h JSONHandler) Handle(in <-chan ResourceAudits, l *logrus.Logger) error {
+func (h JSONHandler) Handle(in <-chan ResourceAudits) error {
 	for res := range in {
 		record := &JSONRecord{
 			ContentType: res.ContentType.String(),
@@ -69,10 +38,20 @@ func (h JSONHandler) Handle(in <-chan ResourceAudits, l *logrus.Logger) error {
 		}
 		recordStr, err := json.Marshal(record)
 		if err != nil {
-			l.Errorf("marshalling: %s", err)
+			h.logger.Error(err)
 			continue
 		}
-		fmt.Fprintln(h.writer, string(recordStr))
+		if !h.indent {
+			fmt.Fprintln(h.writer, string(recordStr))
+			continue
+		}
+		var out bytes.Buffer
+		err = json.Indent(&out, recordStr, "", "\t")
+		if err != nil {
+			h.logger.Error(err)
+			continue
+		}
+		fmt.Fprintln(h.writer, out.String())
 	}
 	return nil
 }
