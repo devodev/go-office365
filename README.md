@@ -21,7 +21,8 @@
   - [Watcher](#watcher)
     - [How it works](#how-it-works)
 - [Roadmap](#roadmap)
-  - [start-sub command](#start-sub-command)
+  - [Office365 package](#office365-package)
+  - [CLI Commands](#cli-commands)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -126,8 +127,11 @@ It uses a minimum amount of resources and a lot of useful flags can be provided.
 - At fixed intervals, a subscription worker is spawned. It will query the content subscriptions currently enabled and will trigger the appropriate data pipelines.</br>
 
 ## Roadmap
-### `start-sub` command
-  - Add flag to provide a webhook object definition
+### Office365 Package
+- Add ability to parse type id's in audit records
+  - AuditLogRecordType, UserType, AuditLogScope
+### CLI Commands
+- `start-sub`: Add flag to provide a webhook object definition
 
 ## Contributing
 > This is my first contribution to the open source community, so please feel free to open issues and discuss how you would improve the current code. I am eager to read you and learn from the community. Thanks!</br>`@devodev`
