@@ -3,18 +3,16 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/devodev/go-office365/v0/pkg/office365"
 	"github.com/spf13/cobra"
 )
 
-func init() {
-	RootCmd.AddCommand(newCommandContent())
-}
-
 func newCommandContent() *cobra.Command {
 	var (
+		cfgFile   string
 		startTime string
 		endTime   string
 	)
@@ -23,41 +21,44 @@ func newCommandContent() *cobra.Command {
 		Use:   "content [content-type]",
 		Short: "List content that is available to be fetched for the provided content-type.",
 		Args:  cobra.ExactArgs(1),
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			// command line args
 			ctArg := args[0]
 
 			// validate args
 			if !office365.ContentTypeValid(ctArg) {
-				logger.Error("ContentType invalid")
-				return
+				return fmt.Errorf("ContentType invalid")
 			}
 			ct, err := office365.GetContentType(ctArg)
 			if err != nil {
-				logger.Error(err)
-				return
+				return err
+			}
+
+			config, err := initConfig(cfgFile)
+			if err != nil {
+				return err
 			}
 
 			// parse optional args
 			startTime := parseDate(startTime)
 			endTime := parseDate(endTime)
 
-			client := office365.NewClientAuthenticated(&config.Credentials, config.Global.Identifier, logger)
+			client := office365.NewClientAuthenticated(&config.Credentials, config.Global.Identifier)
 			content, err := client.Content.List(context.Background(), ct, startTime, endTime)
 			if err != nil {
-				logger.Errorf("getting content: %s", err)
-				return
+				return err
 			}
 			for _, u := range content {
 				userData, err := json.Marshal(u)
 				if err != nil {
-					logger.Errorf("marshalling content: %s", err)
-					continue
+					return err
 				}
-				WriteOut(string(userData))
+				writeOut(string(userData))
 			}
+			return nil
 		},
 	}
+	cmd.Flags().StringVar(&cfgFile, "config", "", "config file")
 	cmd.Flags().StringVar(&startTime, "start", "", "Start time")
 	cmd.Flags().StringVar(&endTime, "end", "", "End time")
 

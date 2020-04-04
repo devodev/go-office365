@@ -2,29 +2,32 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/devodev/go-office365/v0/pkg/office365"
 	"github.com/spf13/cobra"
 )
 
-func newCommandAudit() *cobra.Command {
+func newCommandStopSub() *cobra.Command {
 	var (
 		cfgFile string
 	)
 
 	cmd := &cobra.Command{
-		Use:   "audit [audit-id]",
-		Short: "Retrieve events and/or actions for the provided audit-id.",
+		Use:   "stop-sub [content-type]",
+		Short: "Stop a subscription for the provided Content Type.",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// command line args
-			idArg := args[0]
+			ctArg := args[0]
 
 			// validate args
-			if idArg == "" {
-				return fmt.Errorf("audit-id is empty")
+			if !office365.ContentTypeValid(ctArg) {
+				return fmt.Errorf("ContentType invalid")
+			}
+			ct, err := office365.GetContentType(ctArg)
+			if err != nil {
+				return err
 			}
 
 			config, err := initConfig(cfgFile)
@@ -33,17 +36,11 @@ func newCommandAudit() *cobra.Command {
 			}
 
 			client := office365.NewClientAuthenticated(&config.Credentials, config.Global.Identifier)
-			audits, err := client.Audit.List(context.Background(), idArg)
-			if err != nil {
+			if err := client.Subscription.Stop(context.Background(), ct); err != nil {
 				return err
 			}
-			for _, u := range audits {
-				userData, err := json.Marshal(u)
-				if err != nil {
-					return err
-				}
-				writeOut(string(userData))
-			}
+			writeOut("subscription successfully stopped")
+
 			return nil
 		},
 	}

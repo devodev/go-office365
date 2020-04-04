@@ -8,10 +8,6 @@ import (
 	"github.com/spf13/cobra/doc"
 )
 
-func init() {
-	RootCmd.AddCommand(newCommandGenDoc())
-}
-
 func newCommandGenDoc() *cobra.Command {
 	var (
 		dir string
@@ -30,14 +26,12 @@ func newCommandGenDoc() *cobra.Command {
 				return err
 			}
 
-			err = doc.GenMarkdownTree(RootCmd, fpath)
-			if err != nil {
+			if err := doc.GenMarkdownTree(newCommandRoot(), fpath); err != nil {
 				return err
 			}
 			return nil
 		},
 	}
 	cmd.Flags().StringVar(&dir, "dir", "./docs", "directory where to write the doc.")
-
 	return cmd
 }

@@ -5,22 +5,18 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func init() {
-	RootCmd.AddCommand(newCommandContentType())
-}
-
 func newCommandContentType() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "content-types",
 		Short: "List content types accepted by the Microsoft API.",
 		Args:  cobra.NoArgs,
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			contentTypes := office365.GetContentTypes()
 			for _, v := range contentTypes {
-				WriteOut(v.String())
+				writeOut(v.String())
 			}
+			return nil
 		},
 	}
-
 	return cmd
 }

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -12,27 +13,42 @@ import (
 	"syscall"
 
 	"github.com/devodev/go-office365/v0/pkg/office365"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
-func init() {
-	RootCmd.AddCommand(newCommandWatch())
-}
+var (
+	errInvalidStatefile = errors.New("statefile content empty or invalid, starting fresh")
+)
 
 func newCommandWatch() *cobra.Command {
 	var (
+		logFile string
+		cfgFile string
+
 		intervalSeconds   int
 		lookBehindMinutes int
 		statefile         string
 		output            string
 		humanReadable     bool
+		debug             bool
+		jsonLogging       bool
 	)
 
 	cmd := &cobra.Command{
 		Use:   "watch",
 		Short: "Fetch audit events at regular intervals.",
 		Args:  cobra.NoArgs,
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
+			logger, err := initLogger(cmd, logFile, debug, jsonLogging)
+			if err != nil {
+				return err
+			}
+			config, err := initConfig(cfgFile)
+			if err != nil {
+				return err
+			}
+
 			// create cancelling context based on signals
 			ctx, cancel := context.WithCancel(context.Background())
 			go func() {
@@ -51,9 +67,10 @@ func newCommandWatch() *cobra.Command {
 			if statefile != "" {
 				statefileAbs, writeStateDefer, err := setupStatefile(state, statefile)
 				if err != nil {
-					logger.Error(err)
-					// ? TODO: Nested exit path
-					return
+					if err != errInvalidStatefile {
+						return err
+					}
+					logger.Info(err)
 				}
 				defer writeStateDefer()
 				logger.Infof("using statefile: %q", statefileAbs)
@@ -62,9 +79,7 @@ func newCommandWatch() *cobra.Command {
 			// Select output target
 			writer, close, err := setupOutput(ctx, output)
 			if err != nil {
-				logger.Error(err)
-				// ? TODO: Nested exit path
-				return
+				return err
 			}
 			defer close()
 			if output != "" {
@@ -80,23 +95,30 @@ func newCommandWatch() *cobra.Command {
 			}
 
 			// Create client and launch watcher
-			client := office365.NewClientAuthenticated(&config.Credentials, config.Global.Identifier, logger)
+			client := office365.NewClientAuthenticated(&config.Credentials, config.Global.Identifier)
 
 			watcherConf := office365.SubscriptionWatcherConfig{
 				LookBehindMinutes:     lookBehindMinutes,
 				TickerIntervalSeconds: intervalSeconds,
 			}
-			if err := client.Subscription.Watch(ctx, watcherConf, state, handler); err != nil {
-				logger.Error(err)
+
+			watcher, err := office365.NewSubscriptionWatcher(client, watcherConf, state, handler, logger)
+			if err != nil {
+				return err
 			}
+			return watcher.Run(ctx)
 		},
 	}
+	cmd.Flags().StringVar(&logFile, "log", "", "log file")
+	cmd.Flags().StringVar(&cfgFile, "config", "", "config file")
+
 	cmd.Flags().IntVar(&intervalSeconds, "interval", 5, "Interval, in second(s), between API Request.")
 	cmd.Flags().IntVar(&lookBehindMinutes, "lookbehind", 1, "Number of minutes from request time used when fetching available content.")
 	cmd.Flags().StringVar(&statefile, "statefile", "", "File used to read/save state on start/exit.")
 	cmd.Flags().StringVar(&output, "output", "", "Target where to send audit records. Available schemes: file://path/to/file, udp://1.2.3.4:1234, tcp://1.2.3.4:1234")
 	cmd.Flags().BoolVar(&humanReadable, "human-readable", false, "Human readable output format.")
-
+	cmd.Flags().BoolVar(&debug, "debug", false, "set log level to DEBUG")
+	cmd.Flags().BoolVar(&jsonLogging, "json", false, "set log formatter to JSON")
 	return cmd
 }
 
@@ -108,6 +130,38 @@ func getSigChan() chan os.Signal {
 		syscall.SIGTERM,
 		syscall.SIGQUIT)
 	return sigChan
+}
+
+func initLogger(cmd *cobra.Command, logFile string, setDebug, setJSON bool) (*logrus.Logger, error) {
+	logger := logrus.New()
+
+	logger.SetLevel(logrus.InfoLevel)
+	if setDebug {
+		logger.SetLevel(logrus.DebugLevel)
+	}
+
+	logger.SetFormatter(&logrus.TextFormatter{
+		FullTimestamp:          true,
+		DisableLevelTruncation: true,
+		DisableSorting:         true,
+	})
+	if setJSON {
+		logger.SetFormatter(&logrus.JSONFormatter{})
+	}
+
+	logger.SetOutput(loggerOutput)
+	if logFile != "" {
+		logFile, err := filepath.Abs(logFile)
+		f, err := os.OpenFile(logFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0640)
+		if err != nil {
+			return nil, fmt.Errorf("could not use provided logfile: %s", err)
+		}
+		logger.SetOutput(f)
+		cmd.PersistentPostRun = func(cmd *cobra.Command, args []string) {
+			f.Close()
+		}
+	}
+	return logger, nil
 }
 
 func setupOutput(ctx context.Context, selection string) (io.Writer, func() error, error) {
@@ -173,7 +227,7 @@ func setupStatefile(state *office365.MemoryState, fpath string) (string, func() 
 	}
 
 	if err := readState(state, statefile); err != nil {
-		return "", nil, fmt.Errorf("error occured setuping statefile: %s", err)
+		return "", nil, err
 	}
 
 	deferred := func() error {
@@ -199,7 +253,7 @@ func readState(state *office365.MemoryState, fpath string) error {
 
 	err = state.Read(f)
 	if err != nil {
-		logger.Info("statefile content empty or invalid, starting fresh!")
+		return errInvalidStatefile
 	}
 	return nil
 }
