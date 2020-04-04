@@ -1,11 +1,11 @@
-package cmd
+package main
 
 import (
 	"context"
 	"encoding/json"
 	"time"
 
-	"github.com/devodev/go-office365/v0/office365"
+	"github.com/devodev/go-office365/v0/pkg/office365"
 	"github.com/spf13/cobra"
 )
 

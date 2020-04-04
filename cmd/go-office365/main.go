@@ -1,11 +1,11 @@
-package cmd
+package main
 
 import (
 	"fmt"
 	"os"
 	"path/filepath"
 
-	"github.com/devodev/go-office365/v0/office365"
+	"github.com/devodev/go-office365/v0/pkg/office365"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -115,4 +115,11 @@ type Config struct {
 		Identifier string
 	}
 	Credentials office365.Credentials
+}
+
+func main() {
+	if err := Execute(); err != nil {
+		// WriteOut(err.Error())
+		os.Exit(1)
+	}
 }
