@@ -43,7 +43,7 @@ func newCommandRoot() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "go-office365",
 		Short:   "Interact with the Microsoft Office365 Management Activity API.",
-		Version: "0.1.0-alpha.1",
+		Version: "0.1.0-alpha.2",
 	}
 	cmd.AddCommand(
 		newCommandAudit(),
