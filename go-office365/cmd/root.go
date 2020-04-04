@@ -30,7 +30,7 @@ var (
 		Use:     "go-office365",
 		Short:   "Query the Microsoft Office365 Management Activity API.",
 		Long:    "Query the Microsoft Office365 Management Activity API.",
-		Version: "1.0.2",
+		Version: "0.1.0-alpha.1",
 	}
 )
 
