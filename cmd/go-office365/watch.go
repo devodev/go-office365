@@ -179,7 +179,7 @@ func setupOutput(ctx context.Context, selection string) (io.Writer, func() error
 		writer = defaultOutput
 		deferred = func() error { return nil }
 	case strings.HasPrefix(selection, filePrefix):
-		path := selection[len(filePrefix):len(selection)]
+		path := selection[len(filePrefix):]
 		path, err := filepath.Abs(path)
 		if err != nil {
 			return nil, nil, fmt.Errorf("could not get absolute filepath for provided statefile: %s", err)
@@ -191,7 +191,7 @@ func setupOutput(ctx context.Context, selection string) (io.Writer, func() error
 		writer = f
 		deferred = close
 	case strings.HasPrefix(selection, udpPrefix):
-		path := selection[len(udpPrefix):len(selection)]
+		path := selection[len(udpPrefix):]
 		var d net.Dialer
 		conn, err := d.DialContext(ctx, "udp", path)
 		if err != nil {
@@ -200,7 +200,7 @@ func setupOutput(ctx context.Context, selection string) (io.Writer, func() error
 		writer = conn
 		deferred = conn.Close
 	case strings.HasPrefix(selection, tcpPrefix):
-		path := selection[len(tcpPrefix):len(selection)]
+		path := selection[len(tcpPrefix):]
 		var d net.Dialer
 		conn, err := d.DialContext(ctx, "tcp", path)
 		if err != nil {
