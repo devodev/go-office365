@@ -1,6 +1,6 @@
 name: Release
 
-on: 
+on:
   release:
     types: [created]
 
@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        # build and publish in parallel: linux/386, linux/amd64, windows/386, windows/amd64, darwin/386, darwin/amd64 
+        # build and publish in parallel: linux/386, linux/amd64, windows/386, windows/amd64, darwin/386, darwin/amd64
         goos: [linux, windows, darwin]
         goarch: ["386", amd64]
     steps:
@@ -21,4 +21,4 @@ jobs:
         goos: ${{ matrix.goos }}
         goarch: ${{ matrix.goarch }}
         goversion: 1.13
-        project_path: ./go-office365
+        project_path: ./cmd/go-office365
