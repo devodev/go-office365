@@ -57,26 +57,25 @@ Credentials:
 ## Usage
 Auto-generated documentation of commands can be found [here](./go-office365/docs/go-office365.md).
 ```
-Query the Microsoft Office365 Management Activity API.
+Interact with the Microsoft Office365 Management Activity API.
 
 Usage:
   go-office365 [command]
 
 Available Commands:
-  audit         Retrieve events and/or actions for the provided audit-id.
-  content       List content that is available to be fetched for the provided content-type.
+  audit         Query audit records for the provided audit-id.
+  content       Query content for the provided content-type.
   content-types List content types accepted by the Microsoft API.
-  fetch         Combination of content and audit commands.
+  fetch         Query audit records for the provided content-type.
   gendoc        Generate markdown documentation for the go-office365 CLI.
   help          Help about any command
   start-sub     Start a subscription for the provided Content Type.
   stop-sub      Stop a subscription for the provided Content Type.
   subscriptions List current subscriptions.
-  watch         Fetch audit events at regular intervals.
+  watch         Query audit records at regular intervals.
 
 Flags:
-  -h, --help      help for go-office365
-  -v, --version   version for go-office365
+  -h, --help   help for go-office365
 
 Use "go-office365 [command] --help" for more information about a command.
 ```
