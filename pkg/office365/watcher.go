@@ -16,7 +16,7 @@ type Watcher interface {
 }
 
 // SubscriptionWatcher implements the Watcher interface.
-// It fecthes current subscriptions, then queries content available for a given interval
+// It fetches current subscriptions, then queries content available for a given interval
 // and proceed to query audit records.
 type SubscriptionWatcher struct {
 	client *Client

@@ -68,15 +68,15 @@ func testError(t *testing.T, want interface{}, wantError error, gotError error) 
 	t.Helper()
 	if gotError != nil {
 		if wantError != nil && gotError.Error() != wantError.Error() {
-			t.Errorf("error occured but different than WantError: %v != %v", gotError, wantError)
+			t.Errorf("error occurred but different than WantError: %v != %v", gotError, wantError)
 		}
 		if wantError == nil {
-			t.Errorf("error occured but WantError is nil: %v", gotError)
+			t.Errorf("error occurred but WantError is nil: %v", gotError)
 		}
 		return
 	}
 	if want == nil {
-		t.Errorf("no error occured but Want is nil")
+		t.Errorf("no error occurred but Want is nil")
 		return
 	}
 }

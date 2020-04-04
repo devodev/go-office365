@@ -28,7 +28,7 @@ func TestList(t *testing.T) {
 
 	subscriptions, err := client.Subscription.List(context.Background())
 	if err != nil {
-		t.Errorf("error occured running Subscriptions.List: %v", err)
+		t.Errorf("error occurred running Subscriptions.List: %v", err)
 	}
 
 	want := []Subscription{
@@ -117,7 +117,7 @@ func TestStart(t *testing.T) {
 		t.Run(fmt.Sprintf("%d.", idx), func(t *testing.T) {
 			subscriptions, err := client.Subscription.Start(context.Background(), &c.ContentType, c.Request)
 			if err != nil {
-				t.Errorf("error occured running Subscriptions.Start: %v", err)
+				t.Errorf("error occurred running Subscriptions.Start: %v", err)
 			}
 			testDeep(t, subscriptions, c.Want)
 		})
@@ -145,7 +145,7 @@ func TestStop(t *testing.T) {
 		t.Run(fmt.Sprintf("%d.", idx), func(t *testing.T) {
 			err := client.Subscription.Stop(context.Background(), &c.ContentType)
 			if err != nil {
-				t.Errorf("error occured running Subscriptions.Stop: %v", err)
+				t.Errorf("error occurred running Subscriptions.Stop: %v", err)
 			}
 		})
 	}
