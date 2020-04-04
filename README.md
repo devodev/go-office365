@@ -1,24 +1,40 @@
 # go-office365
 `go-office365` provides both a client library as well as a CLI tool to interact with the `Microsoft Office365 Management Activity API`.
 
-![Release](https://github.com/devodev/go-office365/workflows/Release/badge.svg)
-![GitHub tag (latest SemVer)](https://img.shields.io/github/v/tag/devodev/go-office365?sort=semver)
-![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/devodev/go-office365)
+[![Release](https://github.com/devodev/go-office365/workflows/Release/badge.svg)](https://github.com/devodev/go-office365/releases)
+[![GitHub tag (latest SemVer)](https://img.shields.io/github/v/tag/devodev/go-office365?sort=semver)](https://github.com/devodev/go-office365/tags)
+[![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/devodev/go-office365)](https://github.com/golang/go/wiki/Modules)
+[![go.dev reference](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white)](https://pkg.go.dev/mod/github.com/devodev/go-office365)
 [![Go Report Card](https://goreportcard.com/badge/github.com/devodev/go-office365)](https://goreportcard.com/report/github.com/devodev/go-office365)
 [![GitHub license](https://img.shields.io/github/license/devodev/go-office365?style=flat)](https://github.com/devodev/go-office365/blob/master/LICENSE.txt)
 
 ## Table of Contents
 
 - [Overview](#overview)
-- [Configuration file](#configuration-file)
-- [Usage](#usage)
+  - [Supported Architectures](#supported-architectures)
+- [Get Started](#get-started)
+  - [Build](#build)
+- [CLI](#cli)
+  - [Usage](#usage)
+  - [Configuration file](#configuration-file)
+  - [Interval flags](#interval-flags)
+  - [Watcher](#watcher)
+    - [How it works](#how-it-works)
 - [Roadmap](#roadmap)
+  - [start-sub command](#start-sub-command)
+- [Contributing](#contributing)
 - [License](#license)
 
 ## Overview
 `go-office365` provides a client library for the `Microsoft Office365 Management Activity API` written in [Go](https://golang.org/). It follows the Microsoft API Reference available [here](https://docs.microsoft.com/en-us/office/office-365-management-api/office-365-management-activity-api-reference).
 
 `go-office365` is also a CLI application with everything you need to interact with the API remotely.
+
+Currently, **`go-office365` requires Go version 1.13 or greater**.
+
+#### Supported Architectures
+We provide pre-built go-office365 binaries for Windows, Linux and macOS (Darwin) architectures, in both 386/amd64 flavors.</br>
+Please see the release section [here](https://github.com/devodev/go-office365/releases).
 
 ## Get Started
 `go-office365` uses Go Modules introduced in Go 1.11 for dependency management.
@@ -30,32 +46,13 @@ $ mkdir $HOME/src
 $ cd $HOME/src
 $ git clone https://github.com/devodev/go-office365.git
 $ cd go-office365
-$ env GOOS=linux go build -o go_office365_linux ./go-office365
+$ env GOOS=linux go build -o go_office365_linux ./cmd/go-office365
 ```
 If you are a Windows user, substitute the $HOME environment variable above with %USERPROFILE%.
 
-## Configuration file
-> An alternative location can be provided using the `--config` flag.
-
-The CLI will look into the root directory of the executable using the name `.go-office365.yaml`.
-
-The credential attributes can be found in `Azure Active Directory`, under: `Installed apps`.</br>
-The Identifier attribute is provided on all queries to the Microsoft API as the `PublisherIdentifier` query param and is(was?) used to compute quotas. When empty, the param is not sent.
-
-```
-// .go-office365.yaml
----
-Global:
-  Identifier: some-id
-Credentials:
-  ClientID: 00000000-0000-0000-0000-000000000000
-  ClientSecret: 00000000000000000000000000000000
-  TenantID: 00000000-0000-0000-0000-000000000000
-  TenantDomain: some-company.onmicrosoft.com
-```
-
-## Usage
-Auto-generated documentation of commands can be found [here](./go-office365/docs/go-office365.md).
+## CLI
+### Usage
+> Auto-generated documentation for each command can be found [here](./docs/go-office365.md).
 ```
 Interact with the Microsoft Office365 Management Activity API.
 
@@ -80,14 +77,60 @@ Flags:
 Use "go-office365 [command] --help" for more information about a command.
 ```
 
+### Configuration file
+Commands that need to interact with the API require credentials to be provided using a YAML configuration file.</br>
+The following locations are looked into if the --config flag is not provided:
+```
+$HOME/.go-office365.yaml
+$CWD/.go-office365.yaml
+```
+
+The following is the current schema used.
+
+> Identifier is provided on all queries to the Microsoft API as the `PublisherIdentifier` query param and is(was?) used to compute quotas. When empty, the param is not sent.
+
+>Credentials can be found in `Azure Active Directory`, under: `Installed apps`.</br>
+
+```
+---
+Global:
+  Identifier: some-id
+Credentials:
+  ClientID: 00000000-0000-0000-0000-000000000000
+  ClientSecret: 00000000000000000000000000000000
+  TenantID: 00000000-0000-0000-0000-000000000000
+  TenantDomain: some-company.onmicrosoft.com
+```
+
+### Interval flags
+Commands that need to use a fixed interval will offer flags to set the start and end times.</br>
+Here are the guidelines to follow when providing those flags.
+
+```
+- Both or neither of start/end time must be provided.
+- When not provided, a 24 hour interval is used.
+- Start and end time interval must be between 1 minute and 24 hours.
+- Start time must not be earlier than 7 days behind the current time.
+- Time format must match one of: 2006-01-02, 2006-01-02T15:04, 2006-01-02T15:04:05
+```
+
+### Watcher
+The `watch` command provides a daemon like process for retrieving audit records at regular intervals.</br>
+It uses a minimum amount of resources and a lot of useful flags can be provided.</br>
+> For more details on what flags can be used, see the command documentation [here](./docs/go-office365_watch.md).
+
+#### How it works
+- Upon starting, a data structure is initialized to retain the last request time and the last content creation time. A statefile location can be provided for persisting state between restarts.</br>
+- Following, a resource handler is spawned. It is responsible for receiving, formatting and sending records to the selected output.</br>
+- Then, for each each Microsoft content type, a data pipeline is spawned. When triggered, it will query and relay audit records to the resource handler.</br>
+- At fixed intervals, a subscription worker is spawned. It will query the content subscriptions currently enabled and will trigger the appropriate data pipelines.</br>
+
 ## Roadmap
-- Watch command
-  - Add documentation
-- Start-sub command
-  - Add option to provide a webhook object definition
+### `start-sub` command
+  - Add flag to provide a webhook object definition
 
 ## Contributing
-> This is my first Go project, and also in conjunction, my first contribution to the open source community, so please feel free to open issues and discuss how you would improve the current code. I am eager to read you and learn from the community. Thanks!</br>`@devodev`
+> This is my first contribution to the open source community, so please feel free to open issues and discuss how you would improve the current code. I am eager to read you and learn from the community. Thanks!</br>`@devodev`
 
 This repository is under heavy development and is subject to change in the near future.</br>
 Versioning will be locked and a proper contributing section will be created in a timely manner, when code is stabilized.</br>
