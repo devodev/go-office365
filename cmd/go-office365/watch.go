@@ -147,6 +147,9 @@ func initLogger(cmd *cobra.Command, logFile string, setDebug, setJSON bool) (*lo
 	logger.SetOutput(loggerOutput)
 	if logFile != "" {
 		logFile, err := filepath.Abs(logFile)
+		if err != nil {
+			return nil, fmt.Errorf("could not get absolute filepath for provided logfile: %s", err)
+		}
 		f, err := os.OpenFile(logFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0640)
 		if err != nil {
 			return nil, fmt.Errorf("could not use provided logfile: %s", err)
