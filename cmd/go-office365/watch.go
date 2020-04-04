@@ -73,7 +73,7 @@ func newCommandWatch() *cobra.Command {
 					logger.Info(err)
 				}
 				defer writeStateDefer()
-				logger.Infof("using statefile: %q", statefileAbs)
+				logger.Infof("using statefile: %s", statefileAbs)
 			}
 
 			// Select output target
@@ -83,7 +83,7 @@ func newCommandWatch() *cobra.Command {
 			}
 			defer close()
 			if output != "" {
-				logger.Infof("using output: %q", output)
+				logger.Infof("using output: %s", output)
 			}
 
 			// Select resource handler
@@ -157,8 +157,8 @@ func initLogger(cmd *cobra.Command, logFile string, setDebug, setJSON bool) (*lo
 			return nil, fmt.Errorf("could not use provided logfile: %s", err)
 		}
 		logger.SetOutput(f)
-		cmd.PersistentPostRun = func(cmd *cobra.Command, args []string) {
-			f.Close()
+		cmd.PostRunE = func(cmd *cobra.Command, args []string) error {
+			return f.Close()
 		}
 	}
 	return logger, nil
@@ -226,14 +226,15 @@ func setupStatefile(state *office365.MemoryState, fpath string) (string, func() 
 		return "", nil, fmt.Errorf("could not get absolute filepath for provided statefile: %s", err)
 	}
 
-	if err := readState(state, statefile); err != nil {
-		return "", nil, err
-	}
-
 	deferred := func() error {
 		return writeState(state, statefile)
 	}
-	return statefile, deferred, nil
+	// readstate could return errInvalidStatefile
+	// which we handle gracefully, therefore,
+	// just send down the err and let the caller handle it
+	err = readState(state, statefile)
+
+	return statefile, deferred, err
 }
 
 func openStatefile(fpath string) (*os.File, func() error, error) {
