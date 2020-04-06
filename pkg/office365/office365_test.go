@@ -10,7 +10,7 @@ func TestClientDefaults(t *testing.T) {
 	tenantID := ""
 	pubIdentifier := ""
 
-	client := NewClient(nil, tenantID, pubIdentifier, nil)
+	client := NewClient(nil, tenantID, pubIdentifier)
 	if client == nil {
 		t.Fatal("something went terribly wrong")
 	}
