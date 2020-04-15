@@ -107,6 +107,9 @@ func (s *SubscriptionWatcher) Run(ctx context.Context) error {
 		ticker := time.NewTicker(tickerDur)
 		defer ticker.Stop()
 
+		s.logger.Infoln("start main")
+		s.logger.Infof("using config: %+v", s.config)
+
 		fetch := func(t time.Time) {
 			subCh := s.fetchSubscriptions(ctx, done, t)
 			for sub := range subCh {
@@ -120,11 +123,13 @@ func (s *SubscriptionWatcher) Run(ctx context.Context) error {
 				default:
 					ctLogger.Warn("worker is busy, skipping")
 				case workerCh <- sub:
+					// TODO: Log work sent
 				}
 			}
 		}
 
 		fetch(time.Now())
+	Loop:
 		for {
 			select {
 			case <-done:
@@ -132,11 +137,12 @@ func (s *SubscriptionWatcher) Run(ctx context.Context) error {
 					s.logger.WithField("content-type", ct.String()).Info("closing worker")
 					close(workerCh)
 				}
-				return
+				break Loop
 			case t := <-ticker.C:
 				fetch(t)
 			}
 		}
+		s.logger.Infoln("end main")
 	}()
 
 	// this goroutine is responsible for notifying
@@ -159,17 +165,19 @@ func (s *SubscriptionWatcher) fetchSubscriptions(ctx context.Context, done chan 
 	output := func() {
 		defer wg.Done()
 
+		s.logger.Debugln("fetchSubscriptions: start")
+
 		_, subscriptions, err := s.client.Subscription.List(ctx)
 		if err != nil {
 			subscriptions = []Subscription{}
 			if !errors.Is(err, context.Canceled) {
-				s.logger.Errorf("fetching subscriptions: %s", err)
+				s.logger.Errorf("fetchSubscriptions: fetching subscriptions: %s", err)
 			}
 		}
 		for _, sub := range subscriptions {
 			ct, err := GetContentType(sub.ContentType)
 			if err != nil {
-				s.logger.Errorf("mapping contentType: %s", err)
+				s.logger.Errorf("fetchSubscriptions: mapping contentType: %s", err)
 				continue
 			}
 			select {
@@ -178,6 +186,7 @@ func (s *SubscriptionWatcher) fetchSubscriptions(ctx context.Context, done chan 
 			case out <- ResourceSubscription{ct, t, sub}:
 			}
 		}
+		s.logger.Debugln("fetchSubscriptions: end")
 	}
 
 	wg.Add(1)
@@ -199,24 +208,26 @@ func (s *SubscriptionWatcher) fetchContent(ctx context.Context, done chan struct
 		defer wg.Done()
 
 		ctLogger := s.logger.WithField("content-type", sub.ContentType.String())
+		ctLogger.Debugln("fetchContent: start")
 
 		end := sub.RequestTime
-		ctLogger.Debugf("request.RequestTime: %s", sub.RequestTime.String())
+		ctLogger.Debugf("fetchContent: request.RequestTime: %s", sub.RequestTime.String())
+		ctLogger.Debugf("fetchContent: request.RequestTime: %s", sub.RequestTime.String())
 
 		for {
 			lastRequestTime := s.getLastRequestTime(sub.ContentType)
-			ctLogger.Debugf("lastRequestTime: %s", lastRequestTime.String())
+			ctLogger.Debugf("fetchContent: got lastRequestTime: %s", lastRequestTime.String())
 
 			start := lastRequestTime
 			start, end = s.getTimeWindow(sub.RequestTime, start, end)
 
-			ctLogger.Debugf("fetcher.start: %s", start.String())
-			ctLogger.Debugf("fetcher.end: %s", end.String())
+			ctLogger.Debugf("fetchContent: got timewindow start: %s", start.String())
+			ctLogger.Debugf("fetchContent: got timewindow end: %s", end.String())
 
 			_, content, err := s.client.Content.List(ctx, sub.ContentType, start, end)
 			if err != nil {
 				if !errors.Is(err, context.Canceled) {
-					ctLogger.Errorf("could not fetch content: %s", err)
+					ctLogger.Errorf("fetchContent: could not fetch content: %s", err)
 				}
 				return
 			}
@@ -228,10 +239,13 @@ func (s *SubscriptionWatcher) fetchContent(ctx context.Context, done chan struct
 				}
 			}
 			s.setLastRequestTime(sub.ContentType, end)
+			ctLogger.Debugf("fetchContent: set lastRequestTime: %s", end.String())
+
 			if !end.Before(sub.RequestTime) {
 				break
 			}
 		}
+		ctLogger.Debugln("fetchContent: end")
 	}
 
 	wg.Add(1)
@@ -254,27 +268,29 @@ func (s *SubscriptionWatcher) fetchAudits(ctx context.Context, done chan struct{
 
 		for res := range ch {
 			ctLogger := s.logger.WithField("content-type", res.ContentType.String())
+			ctLogger.Debugln("fetchAudits: start")
 
 			lastContentCreated := s.getLastContentCreated(res.ContentType)
-			ctLogger.Debugf("lastContentCreated: %s", lastContentCreated.String())
+			ctLogger.Debugf("fetchAudits: got lastContentCreated: %s", lastContentCreated.String())
 
 			created, err := time.ParseInLocation(CreatedDatetimeFormat, res.Content.ContentCreated, time.Local)
 			if err != nil {
-				ctLogger.Errorf("could not parse ContentCreated: %s", err)
+				ctLogger.Errorf("fetchAudits: could not parse ContentCreated: %s", err)
 				continue
 			}
-			ctLogger.Debugf("content found: %s", created.String())
+			ctLogger.Debugf("fetchAudits: content found: %s", created.String())
 			if !created.After(lastContentCreated) {
-				ctLogger.Debugf("content skipped: last[%s] GT current[%s]", lastContentCreated.String(), created.String())
+				ctLogger.Debugf("fetchAudits: content skipped: last[%s] GT current[%s]", lastContentCreated.String(), created.String())
 				continue
 			}
 			s.setLastContentCreated(res.ContentType, created)
+			ctLogger.Debugf("fetchAudits: set lastContentCreated: %s", created.String())
 
-			ctLogger.Debugf("content fetching..")
+			ctLogger.Debugln("fetchAudits: content fetching..")
 			_, audits, err := s.client.Audit.List(ctx, res.Content.ContentID)
 			if err != nil {
 				if !errors.Is(err, context.Canceled) {
-					ctLogger.Errorf("could not fetch audits: %s", err)
+					ctLogger.Errorf("fetchAudits: could not fetch audits: %s", err)
 				}
 				continue
 			}
@@ -285,6 +301,7 @@ func (s *SubscriptionWatcher) fetchAudits(ctx context.Context, done chan struct{
 				case out <- ResourceAudits{res.ContentType, res.RequestTime, a}:
 				}
 			}
+			ctLogger.Debugln("fetchAudits: end")
 		}
 	}
 
