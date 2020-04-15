@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"time"
@@ -148,30 +149,76 @@ func (c *Client) getURL(path string, params url.Values) *url.URL {
 // and returns an error, if any.
 // It will also try to decode the body into the provided out interface.
 // It returns the response and any error from decoding.
-func (c *Client) do(ctx context.Context, req *http.Request, out interface{}) (*http.Response, error) {
+func (c *Client) do(ctx context.Context, req *http.Request, out interface{}) (*Response, error) {
 	if ctx == nil {
 		return nil, errors.New("context must be non-nil")
 	}
 	req = req.WithContext(ctx)
 	resp, err := c.client.Do(req)
 	if err != nil {
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		default:
+		}
 		return nil, err
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode >= 400 {
-		switch resp.StatusCode {
-		case http.StatusBadRequest:
-			return nil, ErrBadRequest
-		case http.StatusNotFound:
-			return nil, ErrNotFound
-		default:
-			return nil, fmt.Errorf(resp.Status)
-		}
-	}
+
+	response := &Response{resp}
+
+	err = CheckResponse(resp)
+
 	if out != nil {
-		return resp, json.NewDecoder(resp.Body).Decode(&out)
+		decErr := json.NewDecoder(resp.Body).Decode(&out)
+		if decErr == io.EOF {
+			decErr = nil
+		}
+		err = decErr
 	}
-	return resp, nil
+	return response, err
+}
+
+// CheckResponse validates the response returned from
+// an API call and returns an error, if any.
+func CheckResponse(r *http.Response) error {
+	if c := r.StatusCode; 200 <= c && c <= 299 {
+		return nil
+	}
+	errorResponse := &ErrorResponse{Response: r}
+	data, err := ioutil.ReadAll(r.Body)
+	if err == nil && data != nil {
+		json.Unmarshal(data, &errorResponse.Err)
+	}
+	return errorResponse
+}
+
+// Response encapsulates the http response received from
+// a successful API call.
+type Response struct {
+	Response *http.Response
+}
+
+// ErrorResponse encapsulates the http response as well as the
+// error returned in the body of an API call.
+type ErrorResponse struct {
+	Response *http.Response
+	Err      *Error
+}
+
+func (r *ErrorResponse) Error() string {
+	return fmt.Sprintf("%v %v: %d %v. API Error: %+v",
+		r.Response.Request.Method, r.Response.Request.URL,
+		r.Response.StatusCode, r.Response.Status, r.Err)
+}
+
+// Error represents the json object returned in the body
+// of the response when an error is encountered.
+type Error struct {
+	Error struct {
+		Code    string `json:"code"`
+		Message string `json:"message"`
+	} `json:"error"`
 }
 
 // Subscription represents a response.

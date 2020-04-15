@@ -159,7 +159,7 @@ func (s *SubscriptionWatcher) fetchSubscriptions(ctx context.Context, done chan 
 	output := func() {
 		defer wg.Done()
 
-		subscriptions, err := s.client.Subscription.List(ctx)
+		_, subscriptions, err := s.client.Subscription.List(ctx)
 		if err != nil {
 			subscriptions = []Subscription{}
 			if !errors.Is(err, context.Canceled) {
@@ -213,7 +213,7 @@ func (s *SubscriptionWatcher) fetchContent(ctx context.Context, done chan struct
 			ctLogger.Debugf("fetcher.start: %s", start.String())
 			ctLogger.Debugf("fetcher.end: %s", end.String())
 
-			content, err := s.client.Content.List(ctx, sub.ContentType, start, end)
+			_, content, err := s.client.Content.List(ctx, sub.ContentType, start, end)
 			if err != nil {
 				if !errors.Is(err, context.Canceled) {
 					ctLogger.Errorf("could not fetch content: %s", err)
@@ -271,7 +271,7 @@ func (s *SubscriptionWatcher) fetchAudits(ctx context.Context, done chan struct{
 			s.setLastContentCreated(res.ContentType, created)
 
 			ctLogger.Debugf("content fetching..")
-			audits, err := s.client.Audit.List(ctx, res.Content.ContentID)
+			_, audits, err := s.client.Audit.List(ctx, res.Content.ContentID)
 			if err != nil {
 				if !errors.Is(err, context.Canceled) {
 					ctLogger.Errorf("could not fetch audits: %s", err)

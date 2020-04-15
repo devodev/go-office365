@@ -36,7 +36,7 @@ func newCommandStopSub() *cobra.Command {
 			}
 
 			client := office365.NewClientAuthenticated(&config.Credentials, config.Global.Identifier)
-			if err := client.Subscription.Stop(context.Background(), ct); err != nil {
+			if _, err := client.Subscription.Stop(context.Background(), ct); err != nil {
 				return err
 			}
 			writeOut("subscription successfully stopped")
