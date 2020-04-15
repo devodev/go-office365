@@ -123,7 +123,7 @@ func (s *SubscriptionWatcher) Run(ctx context.Context) error {
 				default:
 					ctLogger.Warn("worker is busy, skipping")
 				case workerCh <- sub:
-					// TODO: Log work sent
+					ctLogger.Debugln("sent work")
 				}
 			}
 		}
