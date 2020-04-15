@@ -25,7 +25,7 @@ func newCommandListSub() *cobra.Command {
 			}
 
 			client := office365.NewClientAuthenticated(&config.Credentials, config.Global.Identifier)
-			subscriptions, err := client.Subscription.List(context.Background())
+			_, subscriptions, err := client.Subscription.List(context.Background())
 			if err != nil {
 				return err
 			}

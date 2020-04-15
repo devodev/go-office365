@@ -16,18 +16,18 @@ type SubscriptionService service
 //
 // List current subscriptions
 // This operation returns a collection of the current subscriptions together with the associated webhooks.
-func (s *SubscriptionService) List(ctx context.Context) ([]Subscription, error) {
+func (s *SubscriptionService) List(ctx context.Context) (*Response, []Subscription, error) {
 	params := NewQueryParams()
 	params.AddPubIdentifier(s.client.pubIdentifier)
 
 	req, err := s.client.newRequest("GET", "subscriptions/list", params.Values, nil)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	var out []Subscription
-	_, err = s.client.do(ctx, req, &out)
-	return out, err
+	resp, err := s.client.do(ctx, req, &out)
+	return resp, out, err
 }
 
 // Start will start a subscription for the specified content type.
@@ -51,30 +51,30 @@ func (s *SubscriptionService) List(ctx context.Context) ([]Subscription, error) 
 // If we do not receive an HTTP 200 OK response, the subscription will not be created.
 // Or, if /start is being called to add a webhook to an existing subscription and a response of HTTP 200 OK
 // is not received, the webhook will not be added and the subscription will remain unchanged.
-func (s *SubscriptionService) Start(ctx context.Context, ct *ContentType, webhook *Webhook) (*Subscription, error) {
+func (s *SubscriptionService) Start(ctx context.Context, ct *ContentType, webhook *Webhook) (*Response, *Subscription, error) {
 	params := NewQueryParams()
 	params.AddPubIdentifier(s.client.pubIdentifier)
 	if err := params.AddContentType(ct); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	var payload io.Reader
 	if webhook != nil {
 		data, err := json.Marshal(webhook)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		payload = bytes.NewBuffer(data)
 	}
 
 	req, err := s.client.newRequest("POST", "subscriptions/start", params.Values, payload)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	var out *Subscription
-	_, err = s.client.do(ctx, req, &out)
-	return out, err
+	resp, err := s.client.do(ctx, req, &out)
+	return resp, out, err
 }
 
 // Stop stops a subscription for the provided ContentType.
@@ -85,18 +85,18 @@ func (s *SubscriptionService) Start(ctx context.Context, ct *ContentType, webhoo
 // When a subscription is stopped, you will no longer receive notifications and you will not be able to retrieve available content.
 // If the subscription is later restarted, you will have access to new content from that point forward.
 // You will not be able to retrieve content that was available between the time the subscription was stopped and restarted.
-func (s *SubscriptionService) Stop(ctx context.Context, ct *ContentType) error {
+func (s *SubscriptionService) Stop(ctx context.Context, ct *ContentType) (*Response, error) {
 	params := NewQueryParams()
 	params.AddPubIdentifier(s.client.pubIdentifier)
 	if err := params.AddContentType(ct); err != nil {
-		return err
+		return nil, err
 	}
 
 	req, err := s.client.newRequest("POST", "subscriptions/stop", params.Values, nil)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	_, err = s.client.do(ctx, req, nil)
-	return err
+	resp, err := s.client.do(ctx, req, nil)
+	return resp, err
 }

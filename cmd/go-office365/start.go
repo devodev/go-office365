@@ -38,7 +38,7 @@ func newCommandStartSub() *cobra.Command {
 			}
 
 			client := office365.NewClientAuthenticated(&config.Credentials, config.Global.Identifier)
-			subscription, err := client.Subscription.Start(context.Background(), ct, nil)
+			_, subscription, err := client.Subscription.Start(context.Background(), ct, nil)
 			if err != nil {
 				return err
 			}

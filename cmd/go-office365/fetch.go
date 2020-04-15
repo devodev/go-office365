@@ -47,7 +47,7 @@ func newCommandFetch() *cobra.Command {
 			client := office365.NewClientAuthenticated(&config.Credentials, config.Global.Identifier)
 
 			// retrieve content
-			content, err := client.Content.List(context.Background(), ct, startTime, endTime)
+			_, content, err := client.Content.List(context.Background(), ct, startTime, endTime)
 			if err != nil {
 				return err
 			}
@@ -55,7 +55,7 @@ func newCommandFetch() *cobra.Command {
 			// retrieve audits
 			var auditList []office365.AuditRecord
 			for _, c := range content {
-				audits, err := client.Audit.List(context.Background(), c.ContentID)
+				_, audits, err := client.Audit.List(context.Background(), c.ContentID)
 				if err != nil {
 					return err
 				}

@@ -58,7 +58,7 @@ func TestAudit(t *testing.T) {
 
 	for idx, c := range cases {
 		t.Run(fmt.Sprintf("%d.", idx), func(t *testing.T) {
-			records, err := client.Audit.List(context.Background(), c.ContentID)
+			_, records, err := client.Audit.List(context.Background(), c.ContentID)
 			testError(t, c.Want, c.WantError, err)
 			if len(records) == 0 && len(c.Want) == 0 {
 				return
