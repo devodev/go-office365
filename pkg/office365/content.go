@@ -60,3 +60,12 @@ func (s *ContentService) List(ctx context.Context, ct *ContentType, startTime ti
 	}
 	return responses, out, nil
 }
+
+// Content represents metadata needed for retreiving aggregated data.
+type Content struct {
+	ContentType       string `json:"contentType"`
+	ContentID         string `json:"contentId"`
+	ContentURI        string `json:"contentUri"`
+	ContentCreated    string `json:"contentCreated"`
+	ContentExpiration string `json:"contentExpiration"`
+}
