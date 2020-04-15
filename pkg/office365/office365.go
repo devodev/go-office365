@@ -323,6 +323,11 @@ type AuditRecord struct {
 // https://docs.microsoft.com/en-us/office/office-365-management-api/office-365-management-activity-api-schema#enum-auditlogrecordtype---type-edmint32
 type AuditLogRecordType int
 
+// MarshalJSON marshals into a string.
+func (t AuditLogRecordType) MarshalJSON() ([]byte, error) {
+	return json.Marshal(t.String())
+}
+
 // AuditLogRecordType enum.
 const (
 	ExchangeAdmin AuditLogRecordType = iota + 1
@@ -416,13 +421,18 @@ var auditLogRecordTypeLiterals = []string{
 	"MicrosoftForms",
 }
 
-func (a AuditLogRecordType) String() string {
-	return auditLogRecordTypeLiterals[a]
+func (t AuditLogRecordType) String() string {
+	return auditLogRecordTypeLiterals[t]
 }
 
 // UserType identifies the type of user in AuditRecord.
 // https://docs.microsoft.com/en-us/office/office-365-management-api/office-365-management-activity-api-schema#enum-user-type---type-edmint32
 type UserType int
+
+// MarshalJSON marshals into a string.
+func (t UserType) MarshalJSON() ([]byte, error) {
+	return json.Marshal(t.String())
+}
 
 // UserType enum.
 const (
@@ -449,13 +459,18 @@ var userTypeLiterals = []string{
 	"SystemPolicy",
 }
 
-func (u UserType) String() string {
-	return userTypeLiterals[u]
+func (t UserType) String() string {
+	return userTypeLiterals[t]
 }
 
 // AuditLogScope identifies the scope of an AuditRecord.
 // https://docs.microsoft.com/en-us/office/office-365-management-api/office-365-management-activity-api-schema#auditlogscope
 type AuditLogScope int
+
+// MarshalJSON marshals into a string.
+func (s AuditLogScope) MarshalJSON() ([]byte, error) {
+	return json.Marshal(s.String())
+}
 
 // AuditLogScope enum.
 const (
@@ -468,6 +483,6 @@ var auditLogScopeLiterals = []string{
 	"Onprem",
 }
 
-func (a AuditLogScope) String() string {
-	return auditLogScopeLiterals[a]
+func (s AuditLogScope) String() string {
+	return auditLogScopeLiterals[s]
 }
