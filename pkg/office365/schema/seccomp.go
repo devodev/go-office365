@@ -15,6 +15,7 @@ type SecurityComplianceCenter struct {
 
 // SecurityComplianceAlerts .
 type SecurityComplianceAlerts struct {
+	AuditRecord
 	AlertID       string `json:"AlertId"`
 	AlertType     string `json:"AlertType"`
 	Name          string `json:"Name"`

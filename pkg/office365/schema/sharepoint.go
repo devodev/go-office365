@@ -2,6 +2,7 @@ package schema
 
 // SharepointBase represents the base schema for sharepoint records.
 type SharepointBase struct {
+	AuditRecord
 	Site              string `json:"Site,omitempty"`
 	ItemType          string `json:"ItemType,omitempty"`
 	EventSource       string `json:"EventSource,omitempty"`

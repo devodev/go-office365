@@ -143,6 +143,7 @@ func (t PolicyAction) String() string {
 
 // URLTimeOfClickEvents .
 type URLTimeOfClickEvents struct {
+	AuditRecord
 	UserID         string         `json:"UserId"`
 	AppName        string         `json:"AppName"`
 	URLClickAction URLClickAction `json:"URLClickAction"`

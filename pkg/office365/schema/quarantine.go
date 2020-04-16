@@ -4,6 +4,7 @@ import "encoding/json"
 
 // Quarantine .
 type Quarantine struct {
+	AuditRecord
 	RequestType      RequestType   `json:"RequestType,omitempty"`
 	RequestSource    RequestSource `json:"RequestSource,omitempty"`
 	NetworkMessageID string        `json:"NetworkMessageId,omitempty"`

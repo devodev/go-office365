@@ -131,21 +131,57 @@ func (s *AuditService) List(ctx context.Context, contentID string) (*Response, [
 		case schema.MicrosoftStreamType:
 		case schema.ComplianceDLPSharePointClassificationType:
 		case schema.ProjectType:
+			var d schema.Project
+			if err := json.Unmarshal(raw, &d); err == nil {
+				data = &d
+			}
 		case schema.SharePointListOperationType:
 		case schema.DataGovernanceType:
 		case schema.SecurityComplianceAlertsType:
+			var d schema.SecurityComplianceAlerts
+			if err := json.Unmarshal(raw, &d); err == nil {
+				data = &d
+			}
 		case schema.ThreatIntelligenceURLType:
+			var d schema.URLTimeOfClickEvents
+			if err := json.Unmarshal(raw, &d); err == nil {
+				data = &d
+			}
 		case schema.SecurityComplianceInsightsType:
 		case schema.WorkplaceAnalyticsType:
+			var d schema.WorkplaceAnalytics
+			if err := json.Unmarshal(raw, &d); err == nil {
+				data = &d
+			}
 		case schema.PowerAppsAppType:
 		case schema.ThreatIntelligenceAtpContentType:
+			var d schema.ATP
+			if err := json.Unmarshal(raw, &d); err == nil {
+				data = &d
+			}
 		case schema.TeamsHealthcareType:
 		case schema.DataInsightsRestAPIAuditType:
 		case schema.SharePointListItemOperationType:
+			var d schema.SharepointBase
+			if err := json.Unmarshal(raw, &d); err == nil {
+				data = &d
+			}
 		case schema.SharePointContentTypeOperationType:
+			var d schema.SharepointBase
+			if err := json.Unmarshal(raw, &d); err == nil {
+				data = &d
+			}
 		case schema.SharePointFieldOperationType:
+			var d schema.SharepointBase
+			if err := json.Unmarshal(raw, &d); err == nil {
+				data = &d
+			}
 		case schema.AirInvestigationType:
 		case schema.QuarantineType:
+			var d schema.Quarantine
+			if err := json.Unmarshal(raw, &d); err == nil {
+				data = &d
+			}
 		case schema.MicrosoftFormsType:
 		}
 		out = append(out, data)
