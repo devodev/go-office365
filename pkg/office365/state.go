@@ -5,14 +5,16 @@ import (
 	"io"
 	"sync"
 	"time"
+
+	"github.com/devodev/go-office365/v0/pkg/office365/schema"
 )
 
 // State is an interface for storinm and retrievinm Watcher state.
 type State interface {
-	setLastContentCreated(*ContentType, time.Time)
-	getLastContentCreated(*ContentType) time.Time
-	setLastRequestTime(*ContentType, time.Time)
-	getLastRequestTime(*ContentType) time.Time
+	setLastContentCreated(*schema.ContentType, time.Time)
+	getLastContentCreated(*schema.ContentType) time.Time
+	setLastRequestTime(*schema.ContentType, time.Time)
+	getLastRequestTime(*schema.ContentType) time.Time
 	Read(io.Reader) error
 	Write(io.Writer) error
 }
@@ -20,22 +22,22 @@ type State interface {
 // MemoryState is an in-memory State interface implementation.
 type MemoryState struct {
 	muCreated          *sync.RWMutex
-	lastContentCreated map[ContentType]time.Time
+	lastContentCreated map[schema.ContentType]time.Time
 	muRequest          *sync.RWMutex
-	lastRequestTime    map[ContentType]time.Time
+	lastRequestTime    map[schema.ContentType]time.Time
 }
 
 // NewMemoryState returns a new MemoryState.
 func NewMemoryState() *MemoryState {
 	return &MemoryState{
 		muCreated:          &sync.RWMutex{},
-		lastContentCreated: make(map[ContentType]time.Time),
+		lastContentCreated: make(map[schema.ContentType]time.Time),
 		muRequest:          &sync.RWMutex{},
-		lastRequestTime:    make(map[ContentType]time.Time),
+		lastRequestTime:    make(map[schema.ContentType]time.Time),
 	}
 }
 
-func (m *MemoryState) setLastContentCreated(ct *ContentType, t time.Time) {
+func (m *MemoryState) setLastContentCreated(ct *schema.ContentType, t time.Time) {
 	m.muCreated.Lock()
 	defer m.muCreated.Unlock()
 
@@ -45,7 +47,7 @@ func (m *MemoryState) setLastContentCreated(ct *ContentType, t time.Time) {
 	}
 }
 
-func (m *MemoryState) getLastContentCreated(ct *ContentType) time.Time {
+func (m *MemoryState) getLastContentCreated(ct *schema.ContentType) time.Time {
 	m.muCreated.RLock()
 	defer m.muCreated.RUnlock()
 
@@ -56,7 +58,7 @@ func (m *MemoryState) getLastContentCreated(ct *ContentType) time.Time {
 	return t
 }
 
-func (m *MemoryState) setLastRequestTime(ct *ContentType, t time.Time) {
+func (m *MemoryState) setLastRequestTime(ct *schema.ContentType, t time.Time) {
 	m.muRequest.Lock()
 	defer m.muRequest.Unlock()
 
@@ -66,7 +68,7 @@ func (m *MemoryState) setLastRequestTime(ct *ContentType, t time.Time) {
 	}
 }
 
-func (m *MemoryState) getLastRequestTime(ct *ContentType) time.Time {
+func (m *MemoryState) getLastRequestTime(ct *schema.ContentType) time.Time {
 	m.muRequest.RLock()
 	defer m.muRequest.RUnlock()
 
@@ -124,6 +126,6 @@ func (m *MemoryState) Write(w io.Writer) error {
 
 // StateData holds the internal state of MemoryState.
 type StateData struct {
-	LastContentCreated map[ContentType]time.Time
-	LastRequestTime    map[ContentType]time.Time
+	LastContentCreated map[schema.ContentType]time.Time
+	LastRequestTime    map[schema.ContentType]time.Time
 }

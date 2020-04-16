@@ -5,6 +5,8 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+
+	"github.com/devodev/go-office365/v0/pkg/office365/schema"
 )
 
 // SubscriptionService .
@@ -51,7 +53,7 @@ func (s *SubscriptionService) List(ctx context.Context) (*Response, []Subscripti
 // If we do not receive an HTTP 200 OK response, the subscription will not be created.
 // Or, if /start is being called to add a webhook to an existing subscription and a response of HTTP 200 OK
 // is not received, the webhook will not be added and the subscription will remain unchanged.
-func (s *SubscriptionService) Start(ctx context.Context, ct *ContentType, webhook *Webhook) (*Response, *Subscription, error) {
+func (s *SubscriptionService) Start(ctx context.Context, ct *schema.ContentType, webhook *Webhook) (*Response, *Subscription, error) {
 	params := NewQueryParams()
 	params.AddPubIdentifier(s.client.pubIdentifier)
 	if err := params.AddContentType(ct); err != nil {
@@ -85,7 +87,7 @@ func (s *SubscriptionService) Start(ctx context.Context, ct *ContentType, webhoo
 // When a subscription is stopped, you will no longer receive notifications and you will not be able to retrieve available content.
 // If the subscription is later restarted, you will have access to new content from that point forward.
 // You will not be able to retrieve content that was available between the time the subscription was stopped and restarted.
-func (s *SubscriptionService) Stop(ctx context.Context, ct *ContentType) (*Response, error) {
+func (s *SubscriptionService) Stop(ctx context.Context, ct *schema.ContentType) (*Response, error) {
 	params := NewQueryParams()
 	params.AddPubIdentifier(s.client.pubIdentifier)
 	if err := params.AddContentType(ct); err != nil {
@@ -103,15 +105,15 @@ func (s *SubscriptionService) Stop(ctx context.Context, ct *ContentType) (*Respo
 
 // Subscription represents a response.
 type Subscription struct {
-	ContentType string   `json:"contentType"`
-	Status      string   `json:"status"`
+	ContentType *string  `json:"contentType"`
+	Status      *string  `json:"status"`
 	Webhook     *Webhook `json:"webhook"`
 }
 
 // Webhook represents both a response and a request payload.
 type Webhook struct {
-	Status     string `json:"status,omitempty"`
-	Address    string `json:"address"`
-	AuthID     string `json:"authId,omitempty"`
-	Expiration string `json:"expiration,omitempty"`
+	Status     *string `json:"status,omitempty"`
+	Address    *string `json:"address"`
+	AuthID     *string `json:"authId,omitempty"`
+	Expiration *string `json:"expiration,omitempty"`
 }

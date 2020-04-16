@@ -7,6 +7,8 @@ import (
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/devodev/go-office365/v0/pkg/office365/schema"
 )
 
 func stubClient() (*Client, *http.ServeMux, func()) {
@@ -34,7 +36,7 @@ func EnforceAndReturnContentType(t *testing.T, r *http.Request) string {
 		t.Errorf("contentType queryParam is required")
 		return ""
 	}
-	if !ContentTypeValid(contentType) {
+	if !schema.ContentTypeValid(contentType) {
 		t.Errorf("unknown contentType: %s", contentType)
 		return ""
 	}

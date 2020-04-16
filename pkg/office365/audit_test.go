@@ -16,18 +16,19 @@ func TestAudit(t *testing.T) {
 	client, mux, teardown := stubClient()
 	defer teardown()
 
-	store := map[string][]schema.AuditRecord{
+	tp := schema.ComplianceDLPExchangeType
+	store := map[string][]interface{}{
 		"abc": {
-			{ID: String("qqqqqqq")},
+			schema.AuditRecord{ID: String("qqqqqqq"), RecordType: &tp},
 		},
 		"deg": {
-			{ID: String("123456")},
-			{ID: String("789012")},
+			schema.AuditRecord{ID: String("123456"), RecordType: &tp},
+			schema.AuditRecord{ID: String("789012"), RecordType: &tp},
 		},
 	}
 
-	filterStore := func(c *map[string][]schema.AuditRecord, contentID string) []schema.AuditRecord {
-		var result []schema.AuditRecord
+	filterStore := func(c *map[string][]interface{}, contentID string) []interface{} {
+		var result []interface{}
 		for k, v := range *c {
 			if k == contentID {
 				result = append(result, v...)
@@ -49,11 +50,11 @@ func TestAudit(t *testing.T) {
 
 	cases := []struct {
 		ContentID string
-		Want      []schema.AuditRecord
+		Want      []interface{}
 		WantError error
 	}{
 		{ContentID: "abc", Want: store["abc"], WantError: nil},
-		{ContentID: "def", Want: []schema.AuditRecord{}, WantError: nil},
+		{ContentID: "def", Want: []interface{}{}, WantError: nil},
 		{ContentID: "deg", Want: store["deg"], WantError: nil},
 		{ContentID: "", Want: nil, WantError: fmt.Errorf("ContentID must not be empty")},
 	}

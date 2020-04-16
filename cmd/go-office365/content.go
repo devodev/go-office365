@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/devodev/go-office365/v0/pkg/office365"
+	"github.com/devodev/go-office365/v0/pkg/office365/schema"
 	"github.com/spf13/cobra"
 )
 
@@ -26,10 +27,10 @@ func newCommandContent() *cobra.Command {
 			ctArg := args[0]
 
 			// validate args
-			if !office365.ContentTypeValid(ctArg) {
+			if !schema.ContentTypeValid(ctArg) {
 				return fmt.Errorf("ContentType invalid")
 			}
-			ct, err := office365.GetContentType(ctArg)
+			ct, err := schema.GetContentType(ctArg)
 			if err != nil {
 				return err
 			}

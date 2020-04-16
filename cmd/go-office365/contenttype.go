@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/devodev/go-office365/v0/pkg/office365"
+	"github.com/devodev/go-office365/v0/pkg/office365/schema"
 	"github.com/spf13/cobra"
 )
 
@@ -11,7 +11,7 @@ func newCommandContentType() *cobra.Command {
 		Short: "List content types accepted by the Microsoft API.",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			contentTypes := office365.GetContentTypes()
+			contentTypes := schema.GetContentTypes()
 			for _, v := range contentTypes {
 				writeOut(v.String())
 			}

@@ -4,6 +4,8 @@ import (
 	"errors"
 	"net/url"
 	"time"
+
+	"github.com/devodev/go-office365/v0/pkg/office365/schema"
 )
 
 // RequestFormats are the time.Format vars we must follow when providing
@@ -55,7 +57,7 @@ func (p *QueryParams) AddPubIdentifier(pubIdentifier string) {
 }
 
 // AddContentType .
-func (p *QueryParams) AddContentType(ct *ContentType) error {
+func (p *QueryParams) AddContentType(ct *schema.ContentType) error {
 	if &ct == nil {
 		return ErrContentTypeRequired
 	}

@@ -7,6 +7,8 @@ import (
 	"io"
 	"net/http"
 	"testing"
+
+	"github.com/devodev/go-office365/v0/pkg/office365/schema"
 )
 
 func TestList(t *testing.T) {
@@ -33,8 +35,8 @@ func TestList(t *testing.T) {
 
 	want := []Subscription{
 		{
-			ContentType: "test",
-			Status:      "test",
+			ContentType: String("test"),
+			Status:      String("test"),
 			Webhook:     nil,
 		},
 	}
@@ -58,18 +60,18 @@ func TestStart(t *testing.T) {
 			}
 		}
 		if webhook != nil {
-			if webhook.Address == "" {
+			if webhook.Address == nil {
 				t.Errorf("webhook.address is required")
 			}
 		}
 
 		response := &Subscription{
-			ContentType: contentType,
-			Status:      "enabled",
+			ContentType: &contentType,
+			Status:      String("enabled"),
 		}
 		if webhook != nil {
 			response.Webhook = &Webhook{
-				Status:     "enabled",
+				Status:     String("enabled"),
 				Address:    webhook.Address,
 				AuthID:     webhook.AuthID,
 				Expiration: webhook.Expiration,
@@ -81,33 +83,33 @@ func TestStart(t *testing.T) {
 
 	cases := []struct {
 		Request     *Webhook
-		ContentType ContentType
+		ContentType schema.ContentType
 		Want        *Subscription
 	}{
 		{
 			Request: &Webhook{
-				Address:    "test-address",
-				AuthID:     "test-authid",
-				Expiration: "",
+				Address:    String("test-address"),
+				AuthID:     String("test-authid"),
+				Expiration: String(""),
 			},
-			ContentType: AuditAzureActiveDirectory,
+			ContentType: schema.AuditAzureActiveDirectory,
 			Want: &Subscription{
-				ContentType: AuditAzureActiveDirectory.String(),
-				Status:      "enabled",
+				ContentType: String(schema.AuditAzureActiveDirectory.String()),
+				Status:      String("enabled"),
 				Webhook: &Webhook{
-					Status:     "enabled",
-					Address:    "test-address",
-					AuthID:     "test-authid",
-					Expiration: "",
+					Status:     String("enabled"),
+					Address:    String("test-address"),
+					AuthID:     String("test-authid"),
+					Expiration: String(""),
 				},
 			},
 		},
 		{
 			Request:     nil,
-			ContentType: AuditAzureActiveDirectory,
+			ContentType: schema.AuditAzureActiveDirectory,
 			Want: &Subscription{
-				ContentType: AuditAzureActiveDirectory.String(),
-				Status:      "enabled",
+				ContentType: String(schema.AuditAzureActiveDirectory.String()),
+				Status:      String("enabled"),
 				Webhook:     nil,
 			},
 		},
@@ -136,9 +138,9 @@ func TestStop(t *testing.T) {
 	})
 
 	cases := []struct {
-		ContentType ContentType
+		ContentType schema.ContentType
 	}{
-		{ContentType: AuditAzureActiveDirectory},
+		{ContentType: schema.AuditAzureActiveDirectory},
 	}
 
 	for idx, c := range cases {

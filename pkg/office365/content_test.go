@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/devodev/go-office365/v0/pkg/office365/schema"
 )
 
 func TestContent(t *testing.T) {
@@ -21,28 +23,28 @@ func TestContent(t *testing.T) {
 	contentURI := client.getURL(contentID, nil)
 	store := []Content{
 		{
-			ContentType:       AuditAzureActiveDirectory.String(),
+			ContentType:       schema.AuditAzureActiveDirectory.String(),
 			ContentID:         contentID,
 			ContentURI:        contentURI.String(),
 			ContentCreated:    now.Add(-(intervalOneDay * 6)).Format(time.RFC3339),
 			ContentExpiration: now.Add(intervalOneDay * 1).Format(time.RFC3339),
 		},
 		{
-			ContentType:       AuditAzureActiveDirectory.String(),
+			ContentType:       schema.AuditAzureActiveDirectory.String(),
 			ContentID:         contentID,
 			ContentURI:        contentURI.String(),
 			ContentCreated:    now.Add(-(intervalOneDay * 5)).Format(time.RFC3339),
 			ContentExpiration: now.Add(intervalOneDay * 2).Format(time.RFC3339),
 		},
 		{
-			ContentType:       AuditSharePoint.String(),
+			ContentType:       schema.AuditSharePoint.String(),
 			ContentID:         contentID,
 			ContentURI:        contentURI.String(),
 			ContentCreated:    now.Add(-(intervalOneDay * 2)).Format(time.RFC3339),
 			ContentExpiration: now.Add(intervalOneDay * 5).Format(time.RFC3339),
 		},
 		{
-			ContentType:       DLPAll.String(),
+			ContentType:       schema.DLPAll.String(),
 			ContentID:         contentID,
 			ContentURI:        contentURI.String(),
 			ContentCreated:    now.Format(time.RFC3339),
@@ -50,42 +52,42 @@ func TestContent(t *testing.T) {
 		},
 		// test next-uri header
 		{
-			ContentType:       AuditExchange.String(),
+			ContentType:       schema.AuditExchange.String(),
 			ContentID:         contentID,
 			ContentURI:        contentURI.String(),
 			ContentCreated:    now.Add(-(intervalOneDay * 2)).Format(time.RFC3339),
 			ContentExpiration: now.Add(intervalOneDay * 5).Format(time.RFC3339),
 		},
 		{
-			ContentType:       AuditExchange.String(),
+			ContentType:       schema.AuditExchange.String(),
 			ContentID:         contentID,
 			ContentURI:        contentURI.String(),
 			ContentCreated:    now.Add(-(intervalOneDay * 2)).Add(time.Minute).Format(time.RFC3339),
 			ContentExpiration: now.Add(intervalOneDay * 5).Add(time.Minute).Format(time.RFC3339),
 		},
 		{
-			ContentType:       AuditExchange.String(),
+			ContentType:       schema.AuditExchange.String(),
 			ContentID:         contentID,
 			ContentURI:        contentURI.String(),
 			ContentCreated:    now.Add(-(intervalOneDay * 2)).Add(time.Minute * 2).Format(time.RFC3339),
 			ContentExpiration: now.Add(intervalOneDay * 5).Add(time.Minute * 2).Format(time.RFC3339),
 		},
 		{
-			ContentType:       AuditExchange.String(),
+			ContentType:       schema.AuditExchange.String(),
 			ContentID:         contentID,
 			ContentURI:        contentURI.String(),
 			ContentCreated:    now.Add(-(intervalOneDay * 2)).Add(time.Minute * 3).Format(time.RFC3339),
 			ContentExpiration: now.Add(intervalOneDay * 5).Add(time.Minute * 3).Format(time.RFC3339),
 		},
 		{
-			ContentType:       AuditExchange.String(),
+			ContentType:       schema.AuditExchange.String(),
 			ContentID:         contentID,
 			ContentURI:        contentURI.String(),
 			ContentCreated:    now.Add(-(intervalOneDay * 2)).Add(time.Minute * 4).Format(time.RFC3339),
 			ContentExpiration: now.Add(intervalOneDay * 5).Add(time.Minute * 4).Format(time.RFC3339),
 		},
 		{
-			ContentType:       AuditExchange.String(),
+			ContentType:       schema.AuditExchange.String(),
 			ContentID:         contentID,
 			ContentURI:        contentURI.String(),
 			ContentCreated:    now.Add(-(intervalOneDay * 2)).Add(time.Minute * 5).Format(time.RFC3339),
@@ -155,77 +157,77 @@ func TestContent(t *testing.T) {
 	})
 
 	cases := []struct {
-		ContentType ContentType
+		ContentType schema.ContentType
 		StartTime   time.Time
 		EndTime     time.Time
 		Want        []Content
 		WantError   error
 	}{
 		{
-			ContentType: AuditAzureActiveDirectory,
+			ContentType: schema.AuditAzureActiveDirectory,
 			StartTime:   now.Add(-(intervalOneDay * 6)),
 			EndTime:     now.Add(-(intervalOneDay * 5)),
 			Want:        store[0:1],
 			WantError:   nil,
 		},
 		{
-			ContentType: AuditAzureActiveDirectory,
+			ContentType: schema.AuditAzureActiveDirectory,
 			StartTime:   now.Add(-(intervalOneDay * 4)),
 			EndTime:     now.Add(-(intervalOneDay * 3)),
 			Want:        []Content{},
 			WantError:   nil,
 		},
 		{
-			ContentType: AuditAzureActiveDirectory,
+			ContentType: schema.AuditAzureActiveDirectory,
 			StartTime:   now.Add(-(intervalOneDay * 6)),
 			EndTime:     now.Add(-(intervalOneDay * 4)),
 			Want:        nil,
 			WantError:   ErrIntervalDay,
 		},
 		{
-			ContentType: AuditAzureActiveDirectory,
+			ContentType: schema.AuditAzureActiveDirectory,
 			StartTime:   now.Add(-(intervalOneDay * 4)),
 			EndTime:     now.Add(-(intervalOneDay * 6)),
 			Want:        nil,
 			WantError:   ErrIntervalNegative,
 		},
 		{
-			ContentType: AuditAzureActiveDirectory,
+			ContentType: schema.AuditAzureActiveDirectory,
 			StartTime:   now.Add(-(intervalOneDay * 8)),
 			EndTime:     now.Add(-(intervalOneDay * 7)),
 			Want:        nil,
 			WantError:   ErrIntervalWeek,
 		},
 		{
-			ContentType: AuditAzureActiveDirectory,
+			ContentType: schema.AuditAzureActiveDirectory,
 			StartTime:   now.Add(-(intervalOneDay * 5)),
 			EndTime:     time.Time{},
 			Want:        nil,
 			WantError:   ErrIntervalMismatch,
 		},
 		{
-			ContentType: AuditAzureActiveDirectory,
+			ContentType: schema.AuditAzureActiveDirectory,
 			StartTime:   time.Time{},
 			EndTime:     now.Add(-(intervalOneDay * 5)),
 			Want:        nil,
 			WantError:   ErrIntervalMismatch,
 		},
 		{
-			ContentType: DLPAll,
+			ContentType: schema.DLPAll,
 			StartTime:   time.Time{},
 			EndTime:     time.Time{},
 			Want:        store[3:4],
 			WantError:   nil,
 		},
 		{
-			ContentType: AuditExchange,
+			ContentType: schema.AuditExchange,
 			StartTime:   now.Add(-(intervalOneDay * 2)),
 			EndTime:     now.Add(-(intervalOneDay * 1)),
 			Want:        store[4:10],
 			WantError:   nil,
 		},
 		{
-			ContentType: AuditExchange,
+			ContentType: schema.AuditExchange,
 			StartTime:   now.Add(-(intervalOneDay * 2)),
 			EndTime:     now.Add(-(intervalOneDay * 1)),
 			Want:        store[4:10],

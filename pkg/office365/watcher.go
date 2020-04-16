@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/devodev/go-office365/v0/pkg/office365/schema"
 	"github.com/sirupsen/logrus"
 )
 
@@ -71,8 +72,8 @@ func (s *SubscriptionWatcher) Run(ctx context.Context) error {
 
 	// setup worker pool
 	// workers receive jobs and send results to output channel
-	workers := make(map[ContentType]chan ResourceSubscription)
-	contentTypes := GetContentTypes()
+	workers := make(map[schema.ContentType]chan ResourceSubscription)
+	contentTypes := schema.GetContentTypes()
 
 	wg.Add(len(contentTypes))
 	for _, ct := range contentTypes {
@@ -175,7 +176,7 @@ func (s *SubscriptionWatcher) fetchSubscriptions(ctx context.Context, done chan 
 			}
 		}
 		for _, sub := range subscriptions {
-			ct, err := GetContentType(sub.ContentType)
+			ct, err := schema.GetContentType(*sub.ContentType)
 			if err != nil {
 				s.logger.Errorf("fetchSubscriptions: mapping contentType: %s", err)
 				continue
@@ -349,21 +350,21 @@ func (s *SubscriptionWatcher) getTimeWindow(requestTime, start, end time.Time) (
 
 // ResourceSubscription .
 type ResourceSubscription struct {
-	ContentType  *ContentType
+	ContentType  *schema.ContentType
 	RequestTime  time.Time
 	Subscription Subscription
 }
 
 // ResourceContent .
 type ResourceContent struct {
-	ContentType *ContentType
+	ContentType *schema.ContentType
 	RequestTime time.Time
 	Content     Content
 }
 
 // ResourceAudits .
 type ResourceAudits struct {
-	ContentType *ContentType
+	ContentType *schema.ContentType
 	RequestTime time.Time
 	AuditRecord interface{}
 }

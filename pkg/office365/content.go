@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/url"
 	"time"
+
+	"github.com/devodev/go-office365/v0/pkg/office365/schema"
 )
 
 // ContentService .
@@ -18,7 +20,7 @@ type ContentService service
 // The content is an aggregation of actions and events harvested from multiple servers across multiple datacenters.
 // The content will be listed in the order in which the aggregations become available, but the events and actions within
 // the aggregations are not guaranteed to be sequential. An error is returned if the subscription status is disabled.
-func (s *ContentService) List(ctx context.Context, ct *ContentType, startTime time.Time, endTime time.Time) ([]*Response, []Content, error) {
+func (s *ContentService) List(ctx context.Context, ct *schema.ContentType, startTime time.Time, endTime time.Time) ([]*Response, []Content, error) {
 	params := NewQueryParams()
 	params.AddPubIdentifier(s.client.pubIdentifier)
 	if err := params.AddContentType(ct); err != nil {
