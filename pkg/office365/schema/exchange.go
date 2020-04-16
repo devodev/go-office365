@@ -6,6 +6,7 @@ import (
 
 // ExchangeAdmin .
 type ExchangeAdmin struct {
+	AuditRecord
 	ModifiedObjectResolvedName string          `json:"ModifiedObjectResolvedName,omitempty"`
 	Parameters                 []NameValuePair `json:"Parameters,omitempty"`
 	ModifiedProperties         []string        `json:"ModifiedProperties,omitempty"`
@@ -91,17 +92,15 @@ const (
 	DelegatedAdminLT
 )
 
-// LogonTypeLiterals .
-var LogonTypeLiterals = []string{
-	"Owner",
-	"Admin",
-	"Delegated",
-	"Transport",
-	"SystemService",
-	"BestAccess",
-	"DelegatedAdmin",
-}
-
 func (t LogonType) String() string {
-	return LogonTypeLiterals[t]
+	literals := map[LogonType]string{
+		OwnerLT:          "Owner",
+		AdminLT:          "Admin",
+		DelegatedLT:      "Delegated",
+		TransportLT:      "Transport",
+		SystemServiceLT:  "SystemService",
+		BestAccessLT:     "BestAccess",
+		DelegatedAdminLT: "DelegatedAdmin",
+	}
+	return literals[t]
 }

@@ -2,6 +2,7 @@ package schema
 
 // Yammer .
 type Yammer struct {
+	AuditRecord
 	ActorUserID        string `json:"ActorUserId,omitempty"`
 	ActorYammerUserID  int    `json:"ActorYammerUserId,omitempty"`
 	DataExportType     string `json:"DataExportType,omitempty"`

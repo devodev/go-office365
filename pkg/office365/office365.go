@@ -236,16 +236,15 @@ const (
 	DLPAll
 )
 
-var contentTypeLiterals = []string{
-	"Audit.AzureActiveDirectory",
-	"Audit.Exchange",
-	"Audit.SharePoint",
-	"Audit.General",
-	"DLP.All",
-}
-
 func (c ContentType) String() string {
-	return contentTypeLiterals[c]
+	literals := map[ContentType]string{
+		AuditAzureActiveDirectory: "Audit.AzureActiveDirectory",
+		AuditExchange:             "Audit.Exchange",
+		AuditSharePoint:           "Audit.SharePoint",
+		AuditGeneral:              "Audit.General",
+		DLPAll:                    "DLP.All",
+	}
+	return literals[c]
 }
 
 // GetContentType returns the ContentType represented

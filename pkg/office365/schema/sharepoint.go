@@ -13,6 +13,7 @@ type SharepointBase struct {
 
 // SharepointFileOperations .
 type SharepointFileOperations struct {
+	AuditRecord
 	SiteURL                  string `json:"SiteUrl"`
 	SourceRelativeURL        string `json:"SourceRelativeUrl,omitempty"`
 	SourceFileName           string `json:"SourceFileName"`
@@ -26,6 +27,7 @@ type SharepointFileOperations struct {
 
 // SharepointSharing .
 type SharepointSharing struct {
+	AuditRecord
 	TargetUserOrGroupName string `json:"TargetUserOrGroupName,omitempty"`
 	TargetUserOrGroupType string `json:"TargetUserOrGroupType,omitempty"`
 	EventData             string `json:"EventData,omitempty"`
@@ -33,6 +35,7 @@ type SharepointSharing struct {
 
 // Sharepoint .
 type Sharepoint struct {
+	AuditRecord
 	CustomEvent        string   `json:"CustomEvent,omitempty"`
 	EventData          string   `json:"EventData,omitempty"`
 	ModifiedProperties []string `json:"ModifiedProperties,omitempty"`

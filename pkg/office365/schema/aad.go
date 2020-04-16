@@ -23,18 +23,17 @@ const (
 	AzureApplicationAuditEvent
 )
 
-// AzureActiveDirectoryEventTypeLiterals .
-var AzureActiveDirectoryEventTypeLiterals = []string{
-	"AccountLogon",
-	"AzureApplicationAuditEvent",
-}
-
 func (t AzureActiveDirectoryEventType) String() string {
-	return AzureActiveDirectoryEventTypeLiterals[t]
+	literals := map[AzureActiveDirectoryEventType]string{
+		AccountLogon:               "AccountLogon",
+		AzureApplicationAuditEvent: "AzureApplicationAuditEvent",
+	}
+	return literals[t]
 }
 
 // AzureActiveDirectoryAccountLogon .
 type AzureActiveDirectoryAccountLogon struct {
+	AuditRecord
 	Application string `json:"Application,omitempty"`
 	Client      string `json:"Client,omitempty"`
 	LoginStatus int    `json:"LoginStatus"`
@@ -77,22 +76,21 @@ const (
 	UPN
 )
 
-// IdentityTypeLiterals .
-var IdentityTypeLiterals = []string{
-	"Claim",
-	"Name",
-	"Other",
-	"PUID",
-	"SPN",
-	"UPN",
-}
-
 func (t IdentityType) String() string {
-	return IdentityTypeLiterals[t]
+	literals := map[IdentityType]string{
+		Claim: "Claim",
+		Name:  "Name",
+		Other: "Other",
+		PUID:  "PUID",
+		SPN:   "SPN",
+		UPN:   "UPN",
+	}
+	return literals[t]
 }
 
 // AzureActiveDirectorySTSLogon .
 type AzureActiveDirectorySTSLogon struct {
+	AuditRecord
 	ApplicationID string `json:"ApplicationId,omitempty"`
 	Client        string `json:"Client,omitempty"`
 	LogonError    string `json:"LogonError,omitempty"`

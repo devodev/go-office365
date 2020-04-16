@@ -45,6 +45,10 @@ func (s *AuditService) List(ctx context.Context, contentID string) (*Response, [
 		data = &r
 		switch r.RecordType {
 		case schema.ExchangeAdminType:
+			var d schema.ExchangeAdmin
+			if err := json.Unmarshal(raw, &d); err == nil {
+				data = &d
+			}
 		case schema.ExchangeItemType:
 			var d schema.ExchangeItem
 			if err := json.Unmarshal(raw, &d); err == nil {
@@ -52,23 +56,75 @@ func (s *AuditService) List(ctx context.Context, contentID string) (*Response, [
 			}
 		case schema.ExchangeItemGroupType:
 		case schema.SharePointType:
+			var d schema.Sharepoint
+			if err := json.Unmarshal(raw, &d); err == nil {
+				data = &d
+			}
 		case schema.SharePointFileOperationType:
+			var d schema.SharepointFileOperations
+			if err := json.Unmarshal(raw, &d); err == nil {
+				data = &d
+			}
 		case schema.AzureActiveDirectoryType:
+			var d schema.AzureActiveDirectory
+			if err := json.Unmarshal(raw, &d); err == nil {
+				data = &d
+			}
 		case schema.AzureActiveDirectoryAccountLogonType:
+			var d schema.AzureActiveDirectoryAccountLogon
+			if err := json.Unmarshal(raw, &d); err == nil {
+				data = &d
+			}
 		case schema.DataCenterSecurityCmdletType:
+			var d schema.DataCenterSecurityCmdlet
+			if err := json.Unmarshal(raw, &d); err == nil {
+				data = &d
+			}
 		case schema.ComplianceDLPSharePointType:
 		case schema.SwayType:
+			var d schema.Sway
+			if err := json.Unmarshal(raw, &d); err == nil {
+				data = &d
+			}
 		case schema.ComplianceDLPExchangeType:
 		case schema.SharePointSharingOperationType:
+			var d schema.SharepointSharing
+			if err := json.Unmarshal(raw, &d); err == nil {
+				data = &d
+			}
 		case schema.AzureActiveDirectoryStsLogonType:
+			var d schema.AzureActiveDirectorySTSLogon
+			if err := json.Unmarshal(raw, &d); err == nil {
+				data = &d
+			}
 		case schema.SecurityComplianceCenterEOPCmdletType:
+			var d schema.SecurityComplianceCenter
+			if err := json.Unmarshal(raw, &d); err == nil {
+				data = &d
+			}
 		case schema.PowerBIAuditType:
+			var d schema.PowerBI
+			if err := json.Unmarshal(raw, &d); err == nil {
+				data = &d
+			}
 		case schema.CRMType:
 		case schema.YammerType:
+			var d schema.Yammer
+			if err := json.Unmarshal(raw, &d); err == nil {
+				data = &d
+			}
 		case schema.SkypeForBusinessCmdletsType:
 		case schema.DiscoveryType:
 		case schema.MicrosoftTeamsType:
+			var d schema.MicrosoftTeams
+			if err := json.Unmarshal(raw, &d); err == nil {
+				data = &d
+			}
 		case schema.ThreatIntelligenceType:
+			var d schema.ATP
+			if err := json.Unmarshal(raw, &d); err == nil {
+				data = &d
+			}
 		case schema.MailSubmissionType:
 		case schema.MicrosoftFlowType:
 		case schema.AeDType:

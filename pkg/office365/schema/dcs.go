@@ -20,17 +20,16 @@ const (
 	DataCenterSecurityCmdletAuditEvent DataCenterSecurityEventType = iota
 )
 
-// DataCenterSecurityEventTypeLiterals .
-var DataCenterSecurityEventTypeLiterals = []string{
-	"DataCenterSecurityCmdletAuditEvent",
-}
-
 func (t DataCenterSecurityEventType) String() string {
-	return DataCenterSecurityEventTypeLiterals[t]
+	literals := map[DataCenterSecurityEventType]string{
+		DataCenterSecurityCmdletAuditEvent: "DataCenterSecurityCmdletAuditEvent",
+	}
+	return literals[t]
 }
 
 // DataCenterSecurityCmdlet .
 type DataCenterSecurityCmdlet struct {
+	AuditRecord
 	StartTime             string `json:"StartTime"`
 	EffectiveOrganization string `json:"EffectiveOrganization"`
 	ElevationTime         string `json:"ElevationTime"`

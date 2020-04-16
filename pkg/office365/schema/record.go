@@ -36,7 +36,9 @@ const (
 	ExchangeItemType
 	ExchangeItemGroupType
 	SharePointType
+	_
 	SharePointFileOperationType
+	_
 	AzureActiveDirectoryType
 	AzureActiveDirectoryAccountLogonType
 	DataCenterSecurityCmdletType
@@ -45,86 +47,99 @@ const (
 	ComplianceDLPExchangeType
 	SharePointSharingOperationType
 	AzureActiveDirectoryStsLogonType
+	_
+	_
 	SecurityComplianceCenterEOPCmdletType
+	_
 	PowerBIAuditType
 	CRMType
 	YammerType
 	SkypeForBusinessCmdletsType
 	DiscoveryType
 	MicrosoftTeamsType
+	_
+	_
 	ThreatIntelligenceType
 	MailSubmissionType
 	MicrosoftFlowType
 	AeDType
 	MicrosoftStreamType
 	ComplianceDLPSharePointClassificationType
+	_
 	ProjectType
 	SharePointListOperationType
+	_
 	DataGovernanceType
+	_
 	SecurityComplianceAlertsType
 	ThreatIntelligenceURLType
 	SecurityComplianceInsightsType
+	_
 	WorkplaceAnalyticsType
 	PowerAppsAppType
+	_
 	ThreatIntelligenceAtpContentType
+	_
 	TeamsHealthcareType
+	_
+	_
 	DataInsightsRestAPIAuditType
+	_
 	SharePointListItemOperationType
 	SharePointContentTypeOperationType
 	SharePointFieldOperationType
-	AirInvestigationType
+	AirInvestigationType = iota + 8
 	QuarantineType
 	MicrosoftFormsType
 )
 
-var auditLogRecordTypeLiterals = []string{
-	"ExchangeAdmin",
-	"ExchangeItem",
-	"ExchangeItemGroup",
-	"SharePoint",
-	"SharePointFileOperation",
-	"AzureActiveDirectory",
-	"AzureActiveDirectoryAccountLogon",
-	"DataCenterSecurityCmdlet",
-	"ComplianceDLPSharePoint",
-	"Sway",
-	"ComplianceDLPExchange",
-	"SharePointSharingOperation",
-	"AzureActiveDirectoryStsLogon",
-	"SecurityComplianceCenterEOPCmdlet",
-	"PowerBIAudit",
-	"CRM",
-	"Yammer",
-	"SkypeForBusinessCmdlets",
-	"Discovery",
-	"MicrosoftTeams",
-	"ThreatIntelligence",
-	"MailSubmission",
-	"MicrosoftFlow",
-	"AeD",
-	"MicrosoftStream",
-	"ComplianceDLPSharePointClassification",
-	"Project",
-	"SharePointListOperation",
-	"DataGovernance",
-	"SecurityComplianceAlerts",
-	"ThreatIntelligenceUrl",
-	"SecurityComplianceInsights",
-	"WorkplaceAnalytics",
-	"PowerAppsApp",
-	"ThreatIntelligenceAtpContent",
-	"TeamsHealthcare",
-	"DataInsightsRestApiAudit",
-	"SharePointListItemOperation",
-	"SharePointContentTypeOperation",
-	"SharePointFieldOperation",
-	"AirInvestigation",
-	"Quarantine",
-	"MicrosoftForms",
-}
-
 func (t AuditLogRecordType) String() string {
-	return auditLogRecordTypeLiterals[t-1]
+	literals := map[AuditLogRecordType]string{
+		ExchangeAdminType:                         "ExchangeAdmin",
+		ExchangeItemType:                          "ExchangeItem",
+		ExchangeItemGroupType:                     "ExchangeItemGroup",
+		SharePointType:                            "SharePoint",
+		SharePointFileOperationType:               "SharePointFileOperation",
+		AzureActiveDirectoryType:                  "AzureActiveDirectory",
+		AzureActiveDirectoryAccountLogonType:      "AzureActiveDirectoryAccountLogon",
+		DataCenterSecurityCmdletType:              "DataCenterSecurityCmdlet",
+		ComplianceDLPSharePointType:               "ComplianceDLPSharePoint",
+		SwayType:                                  "Sway",
+		ComplianceDLPExchangeType:                 "ComplianceDLPExchange",
+		SharePointSharingOperationType:            "SharePointSharingOperation",
+		AzureActiveDirectoryStsLogonType:          "AzureActiveDirectoryStsLogon",
+		SecurityComplianceCenterEOPCmdletType:     "SecurityComplianceCenterEOPCmdlet",
+		PowerBIAuditType:                          "PowerBIAudit",
+		CRMType:                                   "CRM",
+		YammerType:                                "Yammer",
+		SkypeForBusinessCmdletsType:               "SkypeForBusinessCmdlets",
+		DiscoveryType:                             "Discovery",
+		MicrosoftTeamsType:                        "MicrosoftTeams",
+		ThreatIntelligenceType:                    "ThreatIntelligence",
+		MailSubmissionType:                        "MailSubmission",
+		MicrosoftFlowType:                         "MicrosoftFlow",
+		AeDType:                                   "AeD",
+		MicrosoftStreamType:                       "MicrosoftStream",
+		ComplianceDLPSharePointClassificationType: "ComplianceDLPSharePointClassification",
+		ProjectType:                               "Project",
+		SharePointListOperationType:               "SharePointListOperation",
+		DataGovernanceType:                        "DataGovernance",
+		SecurityComplianceAlertsType:              "SecurityComplianceAlerts",
+		ThreatIntelligenceURLType:                 "ThreatIntelligenceUrl",
+		SecurityComplianceInsightsType:            "SecurityComplianceInsights",
+		WorkplaceAnalyticsType:                    "WorkplaceAnalytics",
+		PowerAppsAppType:                          "PowerAppsApp",
+		ThreatIntelligenceAtpContentType:          "ThreatIntelligenceAtpContent",
+		TeamsHealthcareType:                       "TeamsHealthcare",
+		DataInsightsRestAPIAuditType:              "DataInsightsRestApiAudit",
+		SharePointListItemOperationType:           "SharePointListItemOperation",
+		SharePointContentTypeOperationType:        "SharePointContentTypeOperation",
+		SharePointFieldOperationType:              "SharePointFieldOperation",
+		AirInvestigationType:                      "AirInvestigation",
+		QuarantineType:                            "Quarantine",
+		MicrosoftFormsType:                        "MicrosoftForms",
+	}
+	return literals[t]
 }
 
 // UserType identifies the type of user in AuditRecord.
@@ -149,20 +164,19 @@ const (
 	SystemPolicy
 )
 
-var userTypeLiterals = []string{
-	"Regular",
-	"Reserved",
-	"Admin",
-	"DcAdmin",
-	"System",
-	"Application",
-	"ServicePrincipal",
-	"CustomPolicy",
-	"SystemPolicy",
-}
-
 func (t UserType) String() string {
-	return userTypeLiterals[t]
+	literals := map[UserType]string{
+		Regular:          "Regular",
+		Reserved:         "Reserved",
+		Admin:            "Admin",
+		DcAdmin:          "DcAdmin",
+		System:           "System",
+		Application:      "Application",
+		ServicePrincipal: "ServicePrincipal",
+		CustomPolicy:     "CustomPolicy",
+		SystemPolicy:     "SystemPolicy",
+	}
+	return literals[t]
 }
 
 // AuditLogScope identifies the scope of an AuditRecord.
@@ -180,11 +194,10 @@ const (
 	Onprem
 )
 
-var auditLogScopeLiterals = []string{
-	"Online",
-	"Onprem",
-}
-
 func (s AuditLogScope) String() string {
-	return auditLogScopeLiterals[s]
+	literals := map[AuditLogScope]string{
+		Online: "Online",
+		Onprem: "Onprem",
+	}
+	return literals[s]
 }

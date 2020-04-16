@@ -28,16 +28,14 @@ const (
 	CoauthorUT
 )
 
-// FormsUserTypesLiterals .
-var FormsUserTypesLiterals = []string{
-	"Admin",
-	"Owner",
-	"Responder",
-	"Coauthor",
-}
-
 func (t FormsUserTypes) String() string {
-	return FormsUserTypesLiterals[t]
+	literals := map[FormsUserTypes]string{
+		AdminUT:     "Admin",
+		OwnerUT:     "Owner",
+		ResponderUT: "Responder",
+		CoauthorUT:  "Coauthor",
+	}
+	return literals[t]
 }
 
 // FormTypes .
@@ -55,13 +53,11 @@ const (
 	Survey
 )
 
-// FormTypesLiterals .
-var FormTypesLiterals = []string{
-	"Form",
-	"Quiz",
-	"Survey",
-}
-
 func (t FormTypes) String() string {
-	return FormTypesLiterals[t]
+	literals := map[FormTypes]string{
+		Form:   "Form",
+		Quiz:   "Quiz",
+		Survey: "Survey",
+	}
+	return literals[t]
 }

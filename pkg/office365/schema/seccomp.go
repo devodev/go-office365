@@ -2,6 +2,7 @@ package schema
 
 // SecurityComplianceCenter .
 type SecurityComplianceCenter struct {
+	AuditRecord
 	StartTime             string `json:"StartTime,omitempty"`
 	ClientRequestID       string `json:"ClientRequestId,omitempty"`
 	CmdletVersion         string `json:"CmdletVersion,omitempty"`

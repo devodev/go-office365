@@ -4,6 +4,7 @@ import "encoding/json"
 
 // ATP .
 type ATP struct {
+	AuditRecord
 	AttachmentData    []AttachmentData `json:"AttachmentData,omitempty"`
 	DetectionType     string           `json:"DetectionType"`
 	DetectionMethod   string           `json:"DetectionMethod"`
@@ -47,17 +48,15 @@ const (
 	Bad
 )
 
-// FileVerdictLiterals .
-var FileVerdictLiterals = []string{
-	"Pending",
-	"Timeout",
-	"Error",
-	"Good",
-	"Bad",
-}
-
 func (t FileVerdict) String() string {
-	return FileVerdictLiterals[t]
+	literals := map[FileVerdict]string{
+		Pending: "Pending",
+		Timeout: "Timeout",
+		Error:   "Error",
+		Good:    "Good",
+		Bad:     "Bad",
+	}
+	return literals[t]
 }
 
 // Policy .
@@ -86,26 +85,24 @@ const (
 	AntiPhishZAPS
 )
 
-// PolicyLiterals .
-var PolicyLiterals = []string{
-	"Anti-spam, HSPM",
-	"Anti-spam, SPM",
-	"Anti-spam, Bulk",
-	"Anti-spam, PHSH",
-	"Anti-phish, DIMP",
-	"Anti-phish, UIMP",
-	"Anti-phish, SPOOF",
-	"Anti-phish, GIMP",
-	"Anti-malware, AMP",
-	"Safe attachment, SAP",
-	"Exchange transport",
-	"Anti-malware, ZAPM",
-	"Anti-phish, ZAPP",
-	"Anti-phish, ZAPS",
-}
-
 func (t Policy) String() string {
-	return PolicyLiterals[t]
+	literals := map[Policy]string{
+		AntiSpamHSPM:      "Anti-spam, HSPM",
+		AntiSpamSPM:       "Anti-spam, SPM",
+		AntiSpamBulk:      "Anti-spam, Bulk",
+		AntiSpamPHSH:      "Anti-spam, PHSH",
+		AntiPhishDIMP:     "Anti-phish, DIMP",
+		AntiPhishUIMP:     "Anti-phish, UIMP",
+		AntiPhishSPOOF:    "Anti-phish, SPOOF",
+		AntiPhishGIMP:     "Anti-phish, GIMP",
+		AntiMalwareAMP:    "Anti-malware, AMP",
+		SafeAttachmentSAP: "Safe attachment, SAP",
+		ExchangeTransport: "Exchange transport",
+		AntiMalwareZAPM:   "Anti-malware, ZAPM",
+		AntiPhishZAPP:     "Anti-phish, ZAPP",
+		AntiPhishZAPS:     "Anti-phish, ZAPS",
+	}
+	return literals[t]
 }
 
 // PolicyAction .
@@ -129,21 +126,19 @@ const (
 	ReplaceAttachmentPA
 )
 
-// PolicyActionLiterals .
-var PolicyActionLiterals = []string{
-	"MoveToJMF",
-	"AddXHeader",
-	"ModifySubject",
-	"Redirect",
-	"Delete",
-	"Quarantine",
-	"NoAction",
-	"BccMessage",
-	"ReplaceAttachment",
-}
-
 func (t PolicyAction) String() string {
-	return PolicyActionLiterals[t]
+	literals := map[PolicyAction]string{
+		MoveToJMFPA:         "MoveToJMF",
+		AddXHeaderPA:        "AddXHeader",
+		ModifySubjectPA:     "ModifySubject",
+		RedirectPA:          "Redirect",
+		DeletePA:            "Delete",
+		QuarantinePA:        "Quarantine",
+		NoActionPA:          "NoAction",
+		BccMessagePA:        "BccMessage",
+		ReplaceAttachmentPA: "ReplaceAttachment",
+	}
+	return literals[t]
 }
 
 // URLTimeOfClickEvents .
@@ -173,16 +168,14 @@ const (
 	PendingDetonationPageOverride
 )
 
-// URLClickActionLiterals .
-var URLClickActionLiterals = []string{
-	"Blockpage",
-	"PendingDetonationPage",
-	"BlockPageOverride",
-	"PendingDetonationPageOverride",
-}
-
 func (t URLClickAction) String() string {
-	return URLClickActionLiterals[t]
+	literals := map[URLClickAction]string{
+		Blockpage:                     "Blockpage",
+		PendingDetonationPage:         "PendingDetonationPage",
+		BlockPageOverride:             "BlockPageOverride",
+		PendingDetonationPageOverride: "PendingDetonationPageOverride",
+	}
+	return literals[t]
 }
 
 // FileEvents .
@@ -221,13 +214,11 @@ const (
 	MicrosoftTeamsWL
 )
 
-// SourceWorkloadLiterals .
-var SourceWorkloadLiterals = []string{
-	"SharePoint Online",
-	"OneDrive for Business",
-	"Microsoft Teams",
-}
-
 func (t SourceWorkload) String() string {
-	return SourceWorkloadLiterals[t]
+	literals := map[SourceWorkload]string{
+		SharePointOnlineWL:    "SharePoint Online",
+		OneDriveforBusinessWL: "OneDrive for Business",
+		MicrosoftTeamsWL:      "Microsoft Teams",
+	}
+	return literals[t]
 }

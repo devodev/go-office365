@@ -2,6 +2,7 @@ package schema
 
 // PowerBI .
 type PowerBI struct {
+	AuditRecord
 	AppName               string                      `json:"AppName,omitempty"`
 	DashboardName         string                      `json:"DashboardName,omitempty"`
 	DataClassification    string                      `json:"DataClassification,omitempty"`

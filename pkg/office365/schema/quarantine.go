@@ -27,17 +27,15 @@ const (
 	ViewHeader
 )
 
-// RequestTypeLiterals .
-var RequestTypeLiterals = []string{
-	"Preview",
-	"Delete",
-	"Release",
-	"Export",
-	"ViewHeader",
-}
-
 func (t RequestType) String() string {
-	return RequestTypeLiterals[t]
+	literals := map[RequestType]string{
+		Preview:    "Preview",
+		Delete:     "Delete",
+		Release:    "Release",
+		Export:     "Export",
+		ViewHeader: "ViewHeader",
+	}
+	return literals[t]
 }
 
 // RequestSource .
@@ -55,13 +53,11 @@ const (
 	URLlink
 )
 
-// RequestSourceLiterals .
-var RequestSourceLiterals = []string{
-	"SCC",
-	"Cmdlet",
-	"URLlink",
-}
-
 func (t RequestSource) String() string {
-	return RequestSourceLiterals[t]
+	literals := map[RequestSource]string{
+		SCC:     "SCC",
+		Cmdlet:  "Cmdlet",
+		URLlink: "URLlink",
+	}
+	return literals[t]
 }

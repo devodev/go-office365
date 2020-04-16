@@ -4,6 +4,7 @@ import "encoding/json"
 
 // Sway .
 type Sway struct {
+	AuditRecord
 	ObjectType      ObjectType      `json:"ObjectType,omitempty"`
 	Endpoint        Endpoint        `json:"Endpoint,omitempty"`
 	BrowserName     string          `json:"BrowserName,omitempty"`
@@ -28,15 +29,13 @@ const (
 	SwayAdminPortalOT
 )
 
-// ObjectTypeLiterals .
-var ObjectTypeLiterals = []string{
-	"Sway",
-	"SwayEmbedded",
-	"SwayAdminPortal",
-}
-
 func (t ObjectType) String() string {
-	return ObjectTypeLiterals[t]
+	literals := map[ObjectType]string{
+		SwayOT:            "Sway",
+		SwayEmbeddedOT:    "SwayEmbedded",
+		SwayAdminPortalOT: "SwayAdminPortal",
+	}
+	return literals[t]
 }
 
 // OperationResult  .
@@ -53,14 +52,12 @@ const (
 	Failed
 )
 
-// OperationResultLiterals .
-var OperationResultLiterals = []string{
-	"Succeeded",
-	"Failed",
-}
-
 func (t OperationResult) String() string {
-	return OperationResultLiterals[t]
+	literals := map[OperationResult]string{
+		Succeeded: "Succeeded",
+		Failed:    "Failed",
+	}
+	return literals[t]
 }
 
 // Endpoint  .
@@ -79,16 +76,14 @@ const (
 	SwayAndroid
 )
 
-// EndpointLiterals .
-var EndpointLiterals = []string{
-	"SwayWeb",
-	"SwayIOS",
-	"SwayWindows",
-	"SwayAndroid",
-}
-
 func (t Endpoint) String() string {
-	return EndpointLiterals[t]
+	literals := map[Endpoint]string{
+		SwayWeb:     "SwayWeb",
+		SwayIOS:     "SwayIOS",
+		SwayWindows: "SwayWindows",
+		SwayAndroid: "SwayAndroid",
+	}
+	return literals[t]
 }
 
 // DeviceType  .
@@ -106,13 +101,11 @@ const (
 	Tablet
 )
 
-// DeviceTypeLiterals .
-var DeviceTypeLiterals = []string{
-	"Desktop",
-	"Mobile",
-	"Tablet",
-}
-
 func (t DeviceType) String() string {
-	return DeviceTypeLiterals[t]
+	literals := map[DeviceType]string{
+		Desktop: "Desktop",
+		Mobile:  "Mobile",
+		Tablet:  "Tablet",
+	}
+	return literals[t]
 }

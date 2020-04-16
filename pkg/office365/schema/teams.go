@@ -4,6 +4,7 @@ import "encoding/json"
 
 // MicrosoftTeams .
 type MicrosoftTeams struct {
+	AuditRecord
 	MessageID       string                 `json:"MessageId,omitempty"`
 	Members         []MicrosoftTeamsMember `json:"Members,omitempty"`
 	TeamName        string                 `json:"TeamName,omitempty"`
@@ -43,15 +44,13 @@ const (
 	GuestRT
 )
 
-// MemberRoleTypeLiterals .
-var MemberRoleTypeLiterals = []string{
-	"Member",
-	"Owner",
-	"Guest",
-}
-
 func (t MemberRoleType) String() string {
-	return MemberRoleTypeLiterals[t]
+	literals := map[MemberRoleType]string{
+		MemberRT: "Member",
+		OwnerRT:  "Owner",
+		GuestRT:  "Guest",
+	}
+	return literals[t]
 }
 
 // AddOnType  .
@@ -69,15 +68,13 @@ const (
 	Tab
 )
 
-// AddOnTypeLiterals .
-var AddOnTypeLiterals = []string{
-	"Bot",
-	"Connector",
-	"Tab",
-}
-
 func (t AddOnType) String() string {
-	return AddOnTypeLiterals[t]
+	literals := map[AddOnType]string{
+		Bot:       "Bot",
+		Connector: "Connector",
+		Tab:       "Tab",
+	}
+	return literals[t]
 }
 
 // KeyValuePair .
