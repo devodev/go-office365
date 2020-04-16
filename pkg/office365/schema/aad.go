@@ -4,9 +4,9 @@ import "encoding/json"
 
 // AzureActiveDirectoryBase .
 type AzureActiveDirectoryBase struct {
-	AzureActiveDirectoryEventType AzureActiveDirectoryEventType `json:"AzureActiveDirectoryEventType"`
-	ExtendedProperties            []NameValuePair               `json:"ExtendedProperties,omitempty"`
-	ModifiedProperties            []string                      `json:"ModifiedProperties,omitempty"`
+	AzureActiveDirectoryEventType *AzureActiveDirectoryEventType `json:"AzureActiveDirectoryEventType"`
+	ExtendedProperties            []NameValuePair                `json:"ExtendedProperties,omitempty"`
+	ModifiedProperties            []string                       `json:"ModifiedProperties,omitempty"`
 }
 
 // AzureActiveDirectoryEventType .
@@ -34,28 +34,28 @@ func (t AzureActiveDirectoryEventType) String() string {
 // AzureActiveDirectoryAccountLogon .
 type AzureActiveDirectoryAccountLogon struct {
 	AuditRecord
-	Application string `json:"Application,omitempty"`
-	Client      string `json:"Client,omitempty"`
-	LoginStatus int    `json:"LoginStatus"`
-	UserDomain  string `json:"UserDomain"`
+	Application *string `json:"Application,omitempty"`
+	Client      *string `json:"Client,omitempty"`
+	LoginStatus *int    `json:"LoginStatus"`
+	UserDomain  *string `json:"UserDomain"`
 }
 
 // AzureActiveDirectory .
 type AzureActiveDirectory struct {
 	Actor           []IdentityTypeValuePair `json:"Actor,omitempty"`
-	ActorContextID  string                  `json:"ActorContextId,omitempty"`
-	ActorIPAddress  string                  `json:"ActorIpAddress,omitempty"`
-	InterSystemsID  string                  `json:"InterSystemsId,omitempty"`
-	IntraSystemsID  string                  `json:"IntraSystemsId,omitempty"`
-	SupportTicketID string                  `json:"SupportTicketId,omitempty"`
+	ActorContextID  *string                 `json:"ActorContextId,omitempty"`
+	ActorIPAddress  *string                 `json:"ActorIpAddress,omitempty"`
+	InterSystemsID  *string                 `json:"InterSystemsId,omitempty"`
+	IntraSystemsID  *string                 `json:"IntraSystemsId,omitempty"`
+	SupportTicketID *string                 `json:"SupportTicketId,omitempty"`
 	Target          []IdentityTypeValuePair `json:"Target,omitempty"`
-	TargetContextID string                  `json:"TargetContextId,omitempty"`
+	TargetContextID *string                 `json:"TargetContextId,omitempty"`
 }
 
 // IdentityTypeValuePair .
 type IdentityTypeValuePair struct {
-	ID   string       `json:"ID"`
-	Type IdentityType `json:"Type"`
+	ID   *string       `json:"ID"`
+	Type *IdentityType `json:"Type"`
 }
 
 // IdentityType .
@@ -91,7 +91,7 @@ func (t IdentityType) String() string {
 // AzureActiveDirectorySTSLogon .
 type AzureActiveDirectorySTSLogon struct {
 	AuditRecord
-	ApplicationID string `json:"ApplicationId,omitempty"`
-	Client        string `json:"Client,omitempty"`
-	LogonError    string `json:"LogonError,omitempty"`
+	ApplicationID *string `json:"ApplicationId,omitempty"`
+	Client        *string `json:"Client,omitempty"`
+	LogonError    *string `json:"LogonError,omitempty"`
 }

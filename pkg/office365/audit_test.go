@@ -18,11 +18,11 @@ func TestAudit(t *testing.T) {
 
 	store := map[string][]schema.AuditRecord{
 		"abc": {
-			{ID: "qqqqqqq"},
+			{ID: String("qqqqqqq")},
 		},
 		"deg": {
-			{ID: "123456"},
-			{ID: "789012"},
+			{ID: String("123456")},
+			{ID: String("789012")},
 		},
 	}
 

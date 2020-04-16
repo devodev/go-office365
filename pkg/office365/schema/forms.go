@@ -5,11 +5,11 @@ import "encoding/json"
 // MicrosoftForms .
 type MicrosoftForms struct {
 	FormsUserTypes     []FormsUserTypes `json:"FormsUserTypes"`
-	SourceApp          string           `json:"SourceApp"`
-	FormName           string           `json:"FormName,omitempty"`
-	FormID             string           `json:"FormId,omitempty"`
+	SourceApp          *string          `json:"SourceApp"`
+	FormName           *string          `json:"FormName,omitempty"`
+	FormID             *string          `json:"FormId,omitempty"`
 	FormTypes          []FormTypes      `json:"FormTypes,omitempty"`
-	ActivityParameters string           `json:"ActivityParameters,omitempty"`
+	ActivityParameters *string          `json:"ActivityParameters,omitempty"`
 }
 
 // FormsUserTypes .

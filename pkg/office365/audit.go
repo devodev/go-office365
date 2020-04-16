@@ -43,7 +43,7 @@ func (s *AuditService) List(ctx context.Context, contentID string) (*Response, [
 		}
 
 		data = &r
-		switch r.RecordType {
+		switch *r.RecordType {
 		case schema.ExchangeAdminType:
 			var d schema.ExchangeAdmin
 			if err := json.Unmarshal(raw, &d); err == nil {

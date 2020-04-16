@@ -6,19 +6,19 @@ import (
 
 // AuditRecord represents an event or action returned by Audit endpoint.
 type AuditRecord struct {
-	ID             string             `json:"Id"`
-	RecordType     AuditLogRecordType `json:"RecordType"`
-	CreationTime   string             `json:"CreationTime"`
-	Operation      string             `json:"Operation"`
-	OrganizationID string             `json:"OrganizationId"`
-	UserType       UserType           `json:"UserType"`
-	UserKey        string             `json:"UserKey"`
-	Workload       string             `json:"Workload,omitempty"`
-	ResultStatus   string             `json:"ResultStatus,omitempty"`
-	ObjectID       string             `json:"ObjectId,omitempty"`
-	UserID         string             `json:"UserId"`
-	ClientIP       string             `json:"ClientIP"`
-	Scope          AuditLogScope      `json:"Scope,omitempty"`
+	ID             *string             `json:"Id"`
+	RecordType     *AuditLogRecordType `json:"RecordType"`
+	CreationTime   *string             `json:"CreationTime"`
+	Operation      *string             `json:"Operation"`
+	OrganizationID *string             `json:"OrganizationId"`
+	UserType       *UserType           `json:"UserType"`
+	UserKey        *string             `json:"UserKey"`
+	Workload       *string             `json:"Workload,omitempty"`
+	ResultStatus   *string             `json:"ResultStatus,omitempty"`
+	ObjectID       *string             `json:"ObjectId,omitempty"`
+	UserID         *string             `json:"UserId"`
+	ClientIP       *string             `json:"ClientIP"`
+	Scope          *AuditLogScope      `json:"Scope,omitempty"`
 }
 
 // AuditLogRecordType identifies the type of AuditRecord.

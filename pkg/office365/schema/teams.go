@@ -5,28 +5,28 @@ import "encoding/json"
 // MicrosoftTeams .
 type MicrosoftTeams struct {
 	AuditRecord
-	MessageID       string                 `json:"MessageId,omitempty"`
+	MessageID       *string                `json:"MessageId,omitempty"`
 	Members         []MicrosoftTeamsMember `json:"Members,omitempty"`
-	TeamName        string                 `json:"TeamName,omitempty"`
-	TeamGUID        string                 `json:"TeamGuid,omitempty"`
-	ChannelType     string                 `json:"ChannelType,omitempty"`
-	ChannelName     string                 `json:"ChannelName,omitempty"`
-	ChannelGUID     string                 `json:"ChannelGuid,omitempty"`
+	TeamName        *string                `json:"TeamName,omitempty"`
+	TeamGUID        *string                `json:"TeamGuid,omitempty"`
+	ChannelType     *string                `json:"ChannelType,omitempty"`
+	ChannelName     *string                `json:"ChannelName,omitempty"`
+	ChannelGUID     *string                `json:"ChannelGuid,omitempty"`
 	ExtraProperties []KeyValuePair         `json:"ExtraProperties,omitempty"`
-	AddOnType       AddOnType              `json:"AddOnType,omitempty"`
-	AddonName       string                 `json:"AddonName,omitempty"`
-	AddOnGUID       string                 `json:"AddOnGuid,omitempty"`
-	TabType         string                 `json:"TabType,omitempty"`
-	Name            string                 `json:"Name,omitempty"`
-	OldValue        string                 `json:"OldValue,omitempty"`
-	NewValue        string                 `json:"NewValue,omitempty"`
+	AddOnType       *AddOnType             `json:"AddOnType,omitempty"`
+	AddonName       *string                `json:"AddonName,omitempty"`
+	AddOnGUID       *string                `json:"AddOnGuid,omitempty"`
+	TabType         *string                `json:"TabType,omitempty"`
+	Name            *string                `json:"Name,omitempty"`
+	OldValue        *string                `json:"OldValue,omitempty"`
+	NewValue        *string                `json:"NewValue,omitempty"`
 }
 
 // MicrosoftTeamsMember .
 type MicrosoftTeamsMember struct {
-	UPN         string         `json:"UPN,omitempty"`
-	Role        MemberRoleType `json:"Role,omitempty"`
-	DisplayName string         `json:"DisplayName,omitempty"`
+	UPN         *string         `json:"UPN,omitempty"`
+	Role        *MemberRoleType `json:"Role,omitempty"`
+	DisplayName *string         `json:"DisplayName,omitempty"`
 }
 
 // MemberRoleType  .
@@ -79,6 +79,6 @@ func (t AddOnType) String() string {
 
 // KeyValuePair .
 type KeyValuePair struct {
-	Key   string `json:"Key,omitempty"`
-	Value string `json:"Value,omitempty"`
+	Key   *string `json:"Key,omitempty"`
+	Value *string `json:"Value,omitempty"`
 }

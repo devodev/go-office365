@@ -5,13 +5,13 @@ import "encoding/json"
 // Sway .
 type Sway struct {
 	AuditRecord
-	ObjectType      ObjectType      `json:"ObjectType,omitempty"`
-	Endpoint        Endpoint        `json:"Endpoint,omitempty"`
-	BrowserName     string          `json:"BrowserName,omitempty"`
-	DeviceType      DeviceType      `json:"DeviceType,omitempty"`
-	SwayLookupID    string          `json:"SwayLookupId,omitempty"`
-	SiteURL         string          `json:"SiteUrl,omitempty"`
-	OperationResult OperationResult `json:"OperationResult,omitempty"`
+	ObjectType      *ObjectType      `json:"ObjectType,omitempty"`
+	Endpoint        *Endpoint        `json:"Endpoint,omitempty"`
+	BrowserName     *string          `json:"BrowserName,omitempty"`
+	DeviceType      *DeviceType      `json:"DeviceType,omitempty"`
+	SwayLookupID    *string          `json:"SwayLookupId,omitempty"`
+	SiteURL         *string          `json:"SiteUrl,omitempty"`
+	OperationResult *OperationResult `json:"OperationResult,omitempty"`
 }
 
 // ObjectType  .

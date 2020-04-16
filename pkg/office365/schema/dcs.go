@@ -30,13 +30,13 @@ func (t DataCenterSecurityEventType) String() string {
 // DataCenterSecurityCmdlet .
 type DataCenterSecurityCmdlet struct {
 	AuditRecord
-	StartTime             string `json:"StartTime"`
-	EffectiveOrganization string `json:"EffectiveOrganization"`
-	ElevationTime         string `json:"ElevationTime"`
-	ElevationApprover     string `json:"ElevationApprover"`
-	ElevationApprovedTime string `json:"ElevationApprovedTime,omitempty"`
-	ElevationRequestID    string `json:"ElevationRequestId"`
-	ElevationRole         string `json:"ElevationRole,omitempty"`
-	ElevationDuration     int    `json:"ElevationDuration"`
-	GenericInfo           string `json:"GenericInfo,omitempty"`
+	StartTime             *string `json:"StartTime"`
+	EffectiveOrganization *string `json:"EffectiveOrganization"`
+	ElevationTime         *string `json:"ElevationTime"`
+	ElevationApprover     *string `json:"ElevationApprover"`
+	ElevationApprovedTime *string `json:"ElevationApprovedTime,omitempty"`
+	ElevationRequestID    *string `json:"ElevationRequestId"`
+	ElevationRole         *string `json:"ElevationRole,omitempty"`
+	ElevationDuration     *int    `json:"ElevationDuration"`
+	GenericInfo           *string `json:"GenericInfo,omitempty"`
 }

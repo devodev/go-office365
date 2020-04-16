@@ -6,29 +6,29 @@ import "encoding/json"
 type ATP struct {
 	AuditRecord
 	AttachmentData    []AttachmentData `json:"AttachmentData,omitempty"`
-	DetectionType     string           `json:"DetectionType"`
-	DetectionMethod   string           `json:"DetectionMethod"`
-	InternetMessageID string           `json:"InternetMessageId"`
-	NetworkMessageID  string           `json:"NetworkMessageId"`
-	P1Sender          string           `json:"P1Sender"`
-	P2Sender          string           `json:"P2Sender"`
-	Policy            Policy           `json:"Policy"`
-	PolicyAction      PolicyAction     `json:"PolicyAction"`
+	DetectionType     *string          `json:"DetectionType"`
+	DetectionMethod   *string          `json:"DetectionMethod"`
+	InternetMessageID *string          `json:"InternetMessageId"`
+	NetworkMessageID  *string          `json:"NetworkMessageId"`
+	P1Sender          *string          `json:"P1Sender"`
+	P2Sender          *string          `json:"P2Sender"`
+	Policy            *Policy          `json:"Policy"`
+	PolicyAction      *PolicyAction    `json:"PolicyAction"`
 	Recipients        []string         `json:"Recipients"`
-	SenderIP          string           `json:"SenderIp"`
-	Subject           string           `json:"Subject"`
-	Verdict           string           `json:"Verdict"`
-	MessageTime       string           `json:"MessageTime"`
-	EventDeepLink     string           `json:"EventDeepLink"`
+	SenderIP          *string          `json:"SenderIp"`
+	Subject           *string          `json:"Subject"`
+	Verdict           *string          `json:"Verdict"`
+	MessageTime       *string          `json:"MessageTime"`
+	EventDeepLink     *string          `json:"EventDeepLink"`
 }
 
 // AttachmentData .
 type AttachmentData struct {
-	FileName      string      `json:"FileName"`
-	FileType      string      `json:"FileType"`
-	FileVerdict   FileVerdict `json:"FileVerdict"`
-	MalwareFamily string      `json:"MalwareFamily,omitempty"`
-	SHA256        string      `json:"SHA256"`
+	FileName      *string      `json:"FileName"`
+	FileType      *string      `json:"FileType"`
+	FileVerdict   *FileVerdict `json:"FileVerdict"`
+	MalwareFamily *string      `json:"MalwareFamily,omitempty"`
+	SHA256        *string      `json:"SHA256"`
 }
 
 // FileVerdict .
@@ -144,13 +144,13 @@ func (t PolicyAction) String() string {
 // URLTimeOfClickEvents .
 type URLTimeOfClickEvents struct {
 	AuditRecord
-	UserID         string         `json:"UserId"`
-	AppName        string         `json:"AppName"`
-	URLClickAction URLClickAction `json:"URLClickAction"`
-	SourceID       string         `json:"SourceId"`
-	TimeOfClick    string         `json:"TimeOfClick"`
-	URL            string         `json:"URL"`
-	UserIP         string         `json:"UserIp"`
+	UserID         *string         `json:"UserId"`
+	AppName        *string         `json:"AppName"`
+	URLClickAction *URLClickAction `json:"URLClickAction"`
+	SourceID       *string         `json:"SourceId"`
+	TimeOfClick    *string         `json:"TimeOfClick"`
+	URL            *string         `json:"URL"`
+	UserIP         *string         `json:"UserIp"`
 }
 
 // URLClickAction .
@@ -181,23 +181,23 @@ func (t URLClickAction) String() string {
 
 // FileEvents .
 type FileEvents struct {
-	FileData         FileData       `json:"FileData"`
-	SourceWorkload   SourceWorkload `json:"SourceWorkload"`
-	DetectionMethod  string         `json:"DetectionMethod"`
-	LastModifiedDate string         `json:"LastModifiedDate"`
-	LastModifiedBy   string         `json:"LastModifiedBy"`
-	EventDeepLink    string         `json:"EventDeepLink"`
+	FileData         *FileData       `json:"FileData"`
+	SourceWorkload   *SourceWorkload `json:"SourceWorkload"`
+	DetectionMethod  *string         `json:"DetectionMethod"`
+	LastModifiedDate *string         `json:"LastModifiedDate"`
+	LastModifiedBy   *string         `json:"LastModifiedBy"`
+	EventDeepLink    *string         `json:"EventDeepLink"`
 }
 
 // FileData .
 type FileData struct {
-	DocumentID    string      `json:"DocumentId"`
-	FileName      string      `json:"FileName"`
-	FilePath      string      `json:"FilePath"`
-	FileVerdict   FileVerdict `json:"FileVerdict"`
-	MalwareFamily string      `json:"MalwareFamily"`
-	SHA256        string      `json:"SHA256"`
-	FileSize      string      `json:"FileSize"`
+	DocumentID    *string      `json:"DocumentId"`
+	FileName      *string      `json:"FileName"`
+	FilePath      *string      `json:"FilePath"`
+	FileVerdict   *FileVerdict `json:"FileVerdict"`
+	MalwareFamily *string      `json:"MalwareFamily"`
+	SHA256        *string      `json:"SHA256"`
+	FileSize      *string      `json:"FileSize"`
 }
 
 // SourceWorkload .
