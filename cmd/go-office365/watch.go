@@ -33,6 +33,7 @@ func newCommandWatch() *cobra.Command {
 		indent            bool
 		debug             bool
 		jsonLogging       bool
+		extendedSchemas   bool
 	)
 
 	cmd := &cobra.Command{
@@ -94,6 +95,7 @@ func newCommandWatch() *cobra.Command {
 			watcherConf := office365.SubscriptionWatcherConfig{
 				LookBehindMinutes:     lookBehindMinutes,
 				TickerIntervalSeconds: intervalSeconds,
+				AddExtendedSchemas:    extendedSchemas,
 			}
 			watcher, err := office365.NewSubscriptionWatcher(client, watcherConf, state, handler, logger)
 			if err != nil {
@@ -113,6 +115,7 @@ func newCommandWatch() *cobra.Command {
 	cmd.Flags().BoolVar(&indent, "indent", false, "Set records output to be indented.")
 	cmd.Flags().BoolVar(&debug, "debug", false, "Set log level to DEBUG.")
 	cmd.Flags().BoolVar(&jsonLogging, "json", false, "Set log formatter to JSON.")
+	cmd.Flags().BoolVar(&extendedSchemas, "extended-schemas", false, "Set whether to add extended schemas to the output of the record or not.")
 	cmd.Flags().SortFlags = false
 	return cmd
 }

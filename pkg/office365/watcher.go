@@ -32,6 +32,7 @@ type SubscriptionWatcher struct {
 type SubscriptionWatcherConfig struct {
 	LookBehindMinutes     int
 	TickerIntervalSeconds int
+	AddExtendedSchemas    bool
 }
 
 // NewSubscriptionWatcher returns a new watcher that uses the provided client
@@ -287,7 +288,7 @@ func (s *SubscriptionWatcher) fetchAudits(ctx context.Context, done chan struct{
 			ctLogger.Debugf("fetchAudits: set lastContentCreated: %s", created.String())
 
 			ctLogger.Debugln("fetchAudits: content fetching..")
-			_, audits, err := s.client.Audit.List(ctx, res.Content.ContentID, true)
+			_, audits, err := s.client.Audit.List(ctx, res.Content.ContentID, s.config.AddExtendedSchemas)
 			if err != nil {
 				if !errors.Is(err, context.Canceled) {
 					ctLogger.Errorf("fetchAudits: could not fetch audits: %s", err)

@@ -11,7 +11,8 @@ import (
 
 func newCommandAudit() *cobra.Command {
 	var (
-		cfgFile string
+		cfgFile         string
+		extendedSchemas bool
 	)
 
 	cmd := &cobra.Command{
@@ -33,7 +34,7 @@ func newCommandAudit() *cobra.Command {
 			}
 
 			client := office365.NewClientAuthenticated(&config.Credentials, config.Global.Identifier)
-			_, audits, err := client.Audit.List(context.Background(), idArg, true)
+			_, audits, err := client.Audit.List(context.Background(), idArg, extendedSchemas)
 			if err != nil {
 				return err
 			}
@@ -48,6 +49,7 @@ func newCommandAudit() *cobra.Command {
 		},
 	}
 	cmd.Flags().StringVar(&cfgFile, "config", "", "Set configfile alternate location. Defaults are [$HOME/.go-office365.yaml, $CWD/.go-office365.yaml].")
+	cmd.Flags().BoolVar(&extendedSchemas, "extended-schemas", false, "Set whether to add extended schemas to the output of the record or not.")
 	cmd.Flags().SortFlags = false
 	return cmd
 }

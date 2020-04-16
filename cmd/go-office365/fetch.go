@@ -12,9 +12,10 @@ import (
 
 func newCommandFetch() *cobra.Command {
 	var (
-		cfgFile   string
-		startTime string
-		endTime   string
+		cfgFile         string
+		startTime       string
+		endTime         string
+		extendedSchemas bool
 	)
 
 	cmd := &cobra.Command{
@@ -56,7 +57,7 @@ func newCommandFetch() *cobra.Command {
 			// retrieve audits
 			var auditList []interface{}
 			for _, c := range content {
-				_, audits, err := client.Audit.List(context.Background(), c.ContentID, true)
+				_, audits, err := client.Audit.List(context.Background(), c.ContentID, extendedSchemas)
 				if err != nil {
 					return err
 				}
@@ -77,6 +78,7 @@ func newCommandFetch() *cobra.Command {
 	cmd.Flags().StringVar(&cfgFile, "config", "", "Set configfile alternate location. Defaults are [$HOME/.go-office365.yaml, $CWD/.go-office365.yaml].")
 	cmd.Flags().StringVar(&startTime, "start", "", "Start time.")
 	cmd.Flags().StringVar(&endTime, "end", "", "End time.")
+	cmd.Flags().BoolVar(&extendedSchemas, "extended-schemas", false, "Set whether to add extended schemas to the output of the record or not.")
 	cmd.Flags().SortFlags = false
 	return cmd
 }
