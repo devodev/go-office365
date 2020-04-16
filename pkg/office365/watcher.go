@@ -212,7 +212,6 @@ func (s *SubscriptionWatcher) fetchContent(ctx context.Context, done chan struct
 
 		end := sub.RequestTime
 		ctLogger.Debugf("fetchContent: request.RequestTime: %s", sub.RequestTime.String())
-		ctLogger.Debugf("fetchContent: request.RequestTime: %s", sub.RequestTime.String())
 
 		for {
 			lastRequestTime := s.getLastRequestTime(sub.ContentType)
