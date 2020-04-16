@@ -1,6 +1,8 @@
-package office365
+package schema
 
-import "encoding/json"
+import (
+	"encoding/json"
+)
 
 // AuditRecord represents an event or action returned by Audit endpoint.
 type AuditRecord struct {
@@ -19,11 +21,6 @@ type AuditRecord struct {
 	Scope          AuditLogScope      `json:"Scope,omitempty"`
 }
 
-// MarshalJSON .
-func (r AuditRecord) MarshalJSON() ([]byte, error) {
-	return nil, nil
-}
-
 // AuditLogRecordType identifies the type of AuditRecord.
 // https://docs.microsoft.com/en-us/office/office-365-management-api/office-365-management-activity-api-schema#enum-auditlogrecordtype---type-edmint32
 type AuditLogRecordType int
@@ -35,49 +32,49 @@ func (t AuditLogRecordType) MarshalJSON() ([]byte, error) {
 
 // AuditLogRecordType enum.
 const (
-	ExchangeAdmin AuditLogRecordType = iota + 1
-	ExchangeItem
-	ExchangeItemGroup
-	SharePoint
-	SharePointFileOperation
-	AzureActiveDirectory
-	AzureActiveDirectoryAccountLogon
-	DataCenterSecurityCmdlet
-	ComplianceDLPSharePoint
-	Sway
-	ComplianceDLPExchange
-	SharePointSharingOperation
-	AzureActiveDirectoryStsLogon
-	SecurityComplianceCenterEOPCmdlet
-	PowerBIAudit
-	CRM
-	Yammer
-	SkypeForBusinessCmdlets
-	Discovery
-	MicrosoftTeams
-	ThreatIntelligence
-	MailSubmission
-	MicrosoftFlow
-	AeD
-	MicrosoftStream
-	ComplianceDLPSharePointClassification
-	Project
-	SharePointListOperation
-	DataGovernance
-	SecurityComplianceAlerts
-	ThreatIntelligenceURL
-	SecurityComplianceInsights
-	WorkplaceAnalytics
-	PowerAppsApp
-	ThreatIntelligenceAtpContent
-	TeamsHealthcare
-	DataInsightsRestAPIAudit
-	SharePointListItemOperation
-	SharePointContentTypeOperation
-	SharePointFieldOperation
-	AirInvestigation
-	Quarantine
-	MicrosoftForms
+	ExchangeAdminType AuditLogRecordType = iota + 1
+	ExchangeItemType
+	ExchangeItemGroupType
+	SharePointType
+	SharePointFileOperationType
+	AzureActiveDirectoryType
+	AzureActiveDirectoryAccountLogonType
+	DataCenterSecurityCmdletType
+	ComplianceDLPSharePointType
+	SwayType
+	ComplianceDLPExchangeType
+	SharePointSharingOperationType
+	AzureActiveDirectoryStsLogonType
+	SecurityComplianceCenterEOPCmdletType
+	PowerBIAuditType
+	CRMType
+	YammerType
+	SkypeForBusinessCmdletsType
+	DiscoveryType
+	MicrosoftTeamsType
+	ThreatIntelligenceType
+	MailSubmissionType
+	MicrosoftFlowType
+	AeDType
+	MicrosoftStreamType
+	ComplianceDLPSharePointClassificationType
+	ProjectType
+	SharePointListOperationType
+	DataGovernanceType
+	SecurityComplianceAlertsType
+	ThreatIntelligenceURLType
+	SecurityComplianceInsightsType
+	WorkplaceAnalyticsType
+	PowerAppsAppType
+	ThreatIntelligenceAtpContentType
+	TeamsHealthcareType
+	DataInsightsRestAPIAuditType
+	SharePointListItemOperationType
+	SharePointContentTypeOperationType
+	SharePointFieldOperationType
+	AirInvestigationType
+	QuarantineType
+	MicrosoftFormsType
 )
 
 var auditLogRecordTypeLiterals = []string{
@@ -127,7 +124,7 @@ var auditLogRecordTypeLiterals = []string{
 }
 
 func (t AuditLogRecordType) String() string {
-	return auditLogRecordTypeLiterals[t]
+	return auditLogRecordTypeLiterals[t-1]
 }
 
 // UserType identifies the type of user in AuditRecord.

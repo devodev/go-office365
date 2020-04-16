@@ -1,6 +1,8 @@
 package schema
 
-import "encoding/json"
+import (
+	"encoding/json"
+)
 
 // ExchangeAdmin .
 type ExchangeAdmin struct {
@@ -57,6 +59,7 @@ type ExchangeMailboxAuditRecord struct {
 
 // ExchangeItem .
 type ExchangeItem struct {
+	AuditRecord
 	ID           string         `json:"Id"`
 	Subject      string         `json:"Subject,omitempty"`
 	ParentFolder ExchangeFolder `json:"ParentFolder,omitempty"`
@@ -79,13 +82,13 @@ func (t LogonType) MarshalJSON() ([]byte, error) {
 
 // LogonType enum.
 const (
-	Owner LogonType = iota
-	Admin
-	Delegated
-	Transport
-	SystemService
-	BestAccess
-	DelegatedAdmin
+	OwnerLT LogonType = iota
+	AdminLT
+	DelegatedLT
+	TransportLT
+	SystemServiceLT
+	BestAccessLT
+	DelegatedAdminLT
 )
 
 // LogonTypeLiterals .

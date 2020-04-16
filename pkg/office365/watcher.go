@@ -366,5 +366,5 @@ type ResourceContent struct {
 type ResourceAudits struct {
 	ContentType *ContentType
 	RequestTime time.Time
-	AuditRecord AuditRecord
+	AuditRecord interface{}
 }

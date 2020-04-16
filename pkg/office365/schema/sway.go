@@ -23,9 +23,9 @@ func (t ObjectType) MarshalJSON() ([]byte, error) {
 
 // ObjectType  enum.
 const (
-	SwayType ObjectType = iota
-	SwayEmbedded
-	SwayAdminPortal
+	SwayOT ObjectType = iota
+	SwayEmbeddedOT
+	SwayAdminPortalOT
 )
 
 // ObjectTypeLiterals .
