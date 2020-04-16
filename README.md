@@ -126,6 +126,11 @@ It uses a minimum amount of resources and a lot of useful flags can be provided.
 - Then, for each each Microsoft content type, a data pipeline is spawned. When triggered, it will query and relay audit records to the resource handler.</br>
 - At fixed intervals, a subscription worker is spawned. It will query the content subscriptions currently enabled and will trigger the appropriate data pipelines.</br>
 
+### Extended Schemas
+By default, audit events are retrieved and stored using the AuditRecord type. An option is available to
+add remaining fields, when present, depending on the RecordType provided in the Record.</br>
+Whenever an extended schema assigned to a RecordType fails to parse the remaining fields, the base AuditRecord is returned.
+
 ## Roadmap
 ### Office365 Package
 - Add ability to parse type id's in audit records
