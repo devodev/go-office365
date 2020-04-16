@@ -26,6 +26,36 @@ type AuditRecord struct {
 // https://docs.microsoft.com/en-us/office/office-365-management-api/office-365-management-activity-api-schema#enum-auditlogrecordtype---type-edmint32
 type AuditLogRecordType int
 
+// MarshalJSON marshals an AuditLogRecordType into a string.
+func (t *AuditLogRecordType) MarshalJSON() ([]byte, error) {
+	return json.Marshal(t.String())
+}
+
+// UnmarshalJSON unmarshals either a string or a int into an AuditLogRecordType.
+func (t *AuditLogRecordType) UnmarshalJSON(b []byte) error {
+	var raw json.RawMessage
+	if err := json.Unmarshal(b, &raw); err != nil {
+		return err
+	}
+
+	var i int
+	if err := json.Unmarshal(raw, &i); err != nil {
+		var s string
+		if err := json.Unmarshal(raw, &s); err != nil {
+			return err
+		}
+		tmp, err := GetRecordType(s)
+		if err != nil {
+			return err
+		}
+		*t = *tmp
+		return nil
+	}
+	tmp := AuditLogRecordType(i)
+	*t = tmp
+	return nil
+}
+
 // AuditLogRecordType enum.
 const (
 	ExchangeAdminType AuditLogRecordType = iota + 1
