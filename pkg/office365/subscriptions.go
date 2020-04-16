@@ -100,3 +100,18 @@ func (s *SubscriptionService) Stop(ctx context.Context, ct *ContentType) (*Respo
 	resp, err := s.client.do(ctx, req, nil)
 	return resp, err
 }
+
+// Subscription represents a response.
+type Subscription struct {
+	ContentType string   `json:"contentType"`
+	Status      string   `json:"status"`
+	Webhook     *Webhook `json:"webhook"`
+}
+
+// Webhook represents both a response and a request payload.
+type Webhook struct {
+	Status     string `json:"status,omitempty"`
+	Address    string `json:"address"`
+	AuthID     string `json:"authId,omitempty"`
+	Expiration string `json:"expiration,omitempty"`
+}

@@ -60,5 +60,5 @@ func (h JSONHandler) Handle(in <-chan ResourceAudits) error {
 type JSONRecord struct {
 	ContentType string
 	RequestTime time.Time
-	Record      AuditRecord
+	Record      interface{}
 }

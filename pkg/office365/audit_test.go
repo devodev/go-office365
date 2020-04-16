@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+
+	"github.com/devodev/go-office365/v0/pkg/office365/schema"
 )
 
 func TestAudit(t *testing.T) {
@@ -14,18 +16,18 @@ func TestAudit(t *testing.T) {
 	client, mux, teardown := stubClient()
 	defer teardown()
 
-	store := map[string][]AuditRecord{
+	store := map[string][]schema.AuditRecord{
 		"abc": {
-			{ID: "qqqqqqq"},
+			{ID: String("qqqqqqq")},
 		},
 		"deg": {
-			{ID: "123456"},
-			{ID: "789012"},
+			{ID: String("123456")},
+			{ID: String("789012")},
 		},
 	}
 
-	filterStore := func(c *map[string][]AuditRecord, contentID string) []AuditRecord {
-		var result []AuditRecord
+	filterStore := func(c *map[string][]schema.AuditRecord, contentID string) []schema.AuditRecord {
+		var result []schema.AuditRecord
 		for k, v := range *c {
 			if k == contentID {
 				result = append(result, v...)
@@ -47,11 +49,11 @@ func TestAudit(t *testing.T) {
 
 	cases := []struct {
 		ContentID string
-		Want      []AuditRecord
+		Want      []schema.AuditRecord
 		WantError error
 	}{
 		{ContentID: "abc", Want: store["abc"], WantError: nil},
-		{ContentID: "def", Want: []AuditRecord{}, WantError: nil},
+		{ContentID: "def", Want: []schema.AuditRecord{}, WantError: nil},
 		{ContentID: "deg", Want: store["deg"], WantError: nil},
 		{ContentID: "", Want: nil, WantError: fmt.Errorf("ContentID must not be empty")},
 	}

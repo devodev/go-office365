@@ -53,7 +53,7 @@ func newCommandFetch() *cobra.Command {
 			}
 
 			// retrieve audits
-			var auditList []office365.AuditRecord
+			var auditList []interface{}
 			for _, c := range content {
 				_, audits, err := client.Audit.List(context.Background(), c.ContentID)
 				if err != nil {
