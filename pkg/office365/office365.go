@@ -247,14 +247,19 @@ func (c ContentType) String() string {
 	return literals[c]
 }
 
+var contentTypes = map[string]ContentType{
+	"Audit.AzureActiveDirectory": AuditAzureActiveDirectory,
+	"Audit.Exchange":             AuditExchange,
+	"Audit.SharePoint":           AuditSharePoint,
+	"Audit.General":              AuditGeneral,
+	"DLP.All":                    DLPAll,
+}
+
 // GetContentType returns the ContentType represented
 // by the provided string literal.
 func GetContentType(s string) (*ContentType, error) {
-	for idx, v := range contentTypeLiterals {
-		if v == s {
-			ct := ContentType(idx)
-			return &ct, nil
-		}
+	if v, ok := contentTypes[s]; ok {
+		return &v, nil
 	}
 	return nil, fmt.Errorf("ContentType invalid")
 }
@@ -262,9 +267,8 @@ func GetContentType(s string) (*ContentType, error) {
 // GetContentTypes returns the list of ContentType.
 func GetContentTypes() []ContentType {
 	var result []ContentType
-	for idx := range contentTypeLiterals {
-		ct := ContentType(idx)
-		result = append(result, ct)
+	for _, t := range contentTypes {
+		result = append(result, t)
 	}
 	return result
 }
