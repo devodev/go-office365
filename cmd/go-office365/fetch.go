@@ -56,7 +56,7 @@ func newCommandFetch() *cobra.Command {
 			// retrieve audits
 			var auditList []interface{}
 			for _, c := range content {
-				_, audits, err := client.Audit.List(context.Background(), c.ContentID)
+				_, audits, err := client.Audit.List(context.Background(), c.ContentID, true)
 				if err != nil {
 					return err
 				}

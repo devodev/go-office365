@@ -287,7 +287,7 @@ func (s *SubscriptionWatcher) fetchAudits(ctx context.Context, done chan struct{
 			ctLogger.Debugf("fetchAudits: set lastContentCreated: %s", created.String())
 
 			ctLogger.Debugln("fetchAudits: content fetching..")
-			_, audits, err := s.client.Audit.List(ctx, res.Content.ContentID)
+			_, audits, err := s.client.Audit.List(ctx, res.Content.ContentID, true)
 			if err != nil {
 				if !errors.Is(err, context.Canceled) {
 					ctLogger.Errorf("fetchAudits: could not fetch audits: %s", err)

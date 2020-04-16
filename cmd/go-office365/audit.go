@@ -33,7 +33,7 @@ func newCommandAudit() *cobra.Command {
 			}
 
 			client := office365.NewClientAuthenticated(&config.Credentials, config.Global.Identifier)
-			_, audits, err := client.Audit.List(context.Background(), idArg)
+			_, audits, err := client.Audit.List(context.Background(), idArg, true)
 			if err != nil {
 				return err
 			}
