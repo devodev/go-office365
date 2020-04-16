@@ -20,8 +20,8 @@
   - [Interval flags](#interval-flags)
   - [Watcher](#watcher)
     - [How it works](#how-it-works)
+  - [Extended Schemas](#extended-schemas)
 - [Roadmap](#roadmap)
-  - [Office365 package](#office365-package)
   - [CLI Commands](#cli-commands)
 - [Contributing](#contributing)
 - [License](#license)
@@ -132,9 +132,6 @@ add remaining fields, when present, depending on the RecordType provided in the 
 Whenever an extended schema assigned to a RecordType fails to parse the remaining fields, the base AuditRecord is returned.
 
 ## Roadmap
-### Office365 Package
-- Add ability to parse type id's in audit records
-  - AuditLogRecordType, UserType, AuditLogScope
 ### CLI Commands
 - `start-sub`: Add flag to provide a webhook object definition
 
