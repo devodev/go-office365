@@ -29,8 +29,16 @@
     </a>
 </p>
 
+## Overview
+`go-office365` provides a client library for the `Microsoft Office365 Management Activity API` written in [Go](https://golang.org/). It follows the Microsoft API Reference available [here](https://docs.microsoft.com/en-us/office/office-365-management-api/office-365-management-activity-api-reference).
 
----
+`go-office365` is also a CLI application with everything you need to interact with the API on the command line.
+
+Currently, **`go-office365` requires Go version 1.13 or greater**.
+
+#### Supported Architectures
+We provide pre-built go-office365 binaries for Windows, Linux and macOS (Darwin) architectures, in both 386/amd64 flavors.</br>
+Please see the release section [here](https://github.com/devodev/go-office365/releases).
 
 ## Table of Contents
 
@@ -49,17 +57,6 @@
   - [CLI Commands](#cli-commands)
 - [Contributing](#contributing)
 - [License](#license)
-
-## Overview
-`go-office365` provides a client library for the `Microsoft Office365 Management Activity API` written in [Go](https://golang.org/). It follows the Microsoft API Reference available [here](https://docs.microsoft.com/en-us/office/office-365-management-api/office-365-management-activity-api-reference).
-
-`go-office365` is also a CLI application with everything you need to interact with the API remotely.
-
-Currently, **`go-office365` requires Go version 1.13 or greater**.
-
-#### Supported Architectures
-We provide pre-built go-office365 binaries for Windows, Linux and macOS (Darwin) architectures, in both 386/amd64 flavors.</br>
-Please see the release section [here](https://github.com/devodev/go-office365/releases).
 
 ## Get Started
 `go-office365` uses Go Modules introduced in Go 1.11 for dependency management.
