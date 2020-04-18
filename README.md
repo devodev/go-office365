@@ -1,12 +1,36 @@
-# go-office365
-`go-office365` provides both a client library as well as a CLI tool to interact with the `Microsoft Office365 Management Activity API`.
+<p align="center">
+  <a href="https://github.com/devodev/go-office365">
+    <img alt="go-office365" src="assets/go-office365-logo.png" width="500">
+  </a>
+</p>
+<p align="center">
+  A CLI as well as a library to interact with the Microsoft Office365 Management Activity API.
+</p>
+<p align="center">
+    <a href="https://github.com/golang/go/wiki/Modules">
+        <img alt="GitHub go.mod Go version" src="https://img.shields.io/github/go-mod/go-version/devodev/go-office365">
+    </a>
+    <a href="https://pkg.go.dev/mod/github.com/devodev/go-office365">
+        <img alt="go.dev reference" src="https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white">
+    </a>
+    <a href="https://goreportcard.com/report/github.com/devodev/go-office365">
+        <img alt="Go Report Card" src="https://goreportcard.com/badge/github.com/devodev/go-office365">
+    </a>
+</p>
+<p align="center">
+    <a href="https://github.com/devodev/go-office365/releases">
+        <img alt="Release" src="https://github.com/devodev/go-office365/workflows/Release/badge.svg">
+    </a>
+    <a href="https://github.com/devodev/go-office365/tags">
+        <img alt="GitHub tag (latest SemVer)" src="https://img.shields.io/github/v/tag/devodev/go-office365?sort=semver">
+    </a>
+    <a href="https://github.com/devodev/go-office365/blob/master/LICENSE.txt">
+        <img alt="GitHub license" src="https://img.shields.io/github/license/devodev/go-office365?style=flat">
+    </a>
+</p>
 
-[![Release](https://github.com/devodev/go-office365/workflows/Release/badge.svg)](https://github.com/devodev/go-office365/releases)
-[![GitHub tag (latest SemVer)](https://img.shields.io/github/v/tag/devodev/go-office365?sort=semver)](https://github.com/devodev/go-office365/tags)
-[![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/devodev/go-office365)](https://github.com/golang/go/wiki/Modules)
-[![go.dev reference](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white)](https://pkg.go.dev/mod/github.com/devodev/go-office365)
-[![Go Report Card](https://goreportcard.com/badge/github.com/devodev/go-office365)](https://goreportcard.com/report/github.com/devodev/go-office365)
-[![GitHub license](https://img.shields.io/github/license/devodev/go-office365?style=flat)](https://github.com/devodev/go-office365/blob/master/LICENSE.txt)
+
+---
 
 ## Table of Contents
 
